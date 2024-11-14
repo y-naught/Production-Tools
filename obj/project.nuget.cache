@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "dgSpecHash": "3b5G8nRkfFs=",
+  "success": true,
+  "projectFilePath": "/Users/gregoryking/Documents/GitHub/Production-Tools/Production-Tools.csproj",
+  "expectedPackageFiles": [
+    "/Users/gregoryking/.nuget/packages/grasshopper/8.0.23304.9001/grasshopper.8.0.23304.9001.nupkg.sha512",
+    "/Users/gregoryking/.nuget/packages/microsoft.netframework.referenceassemblies/1.0.3/microsoft.netframework.referenceassemblies.1.0.3.nupkg.sha512",
+    "/Users/gregoryking/.nuget/packages/microsoft.netframework.referenceassemblies.net48/1.0.3/microsoft.netframework.referenceassemblies.net48.1.0.3.nupkg.sha512",
+    "/Users/gregoryking/.nuget/packages/rhinocommon/8.0.23304.9001/rhinocommon.8.0.23304.9001.nupkg.sha512",
+    "/Users/gregoryking/.nuget/packages/microsoft.netcore.app.ref/7.0.20/microsoft.netcore.app.ref.7.0.20.nupkg.sha512",
+    "/Users/gregoryking/.nuget/packages/microsoft.aspnetcore.app.ref/7.0.20/microsoft.aspnetcore.app.ref.7.0.20.nupkg.sha512"
+  ],
+  "logs": []
+}

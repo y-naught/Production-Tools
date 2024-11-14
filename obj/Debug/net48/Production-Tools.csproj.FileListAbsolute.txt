@@ -1,0 +1,9 @@
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net48/Production-Tools.rhp
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net48/Production-Tools.pdb
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net48/Production-Tools.csproj.AssemblyReference.cache
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net48/Production-Tools.GeneratedMSBuildEditorConfig.editorconfig
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net48/Production-Tools.AssemblyInfoInputs.cache
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net48/Production-Tools.AssemblyInfo.cs
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net48/Production-Tools.csproj.CoreCompileInputs.cache
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net48/Production-Tools.rhp
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net48/Production-Tools.pdb

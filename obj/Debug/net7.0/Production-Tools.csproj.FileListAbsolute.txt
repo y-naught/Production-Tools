@@ -1,0 +1,14 @@
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net7.0/Production-Tools.deps.json
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net7.0/Production-Tools.runtimeconfig.json
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net7.0/Production-Tools.rhp
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net7.0/Production-Tools.pdb
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/Production-Tools.csproj.AssemblyReference.cache
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/Production-Tools.GeneratedMSBuildEditorConfig.editorconfig
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/Production-Tools.AssemblyInfoInputs.cache
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/Production-Tools.AssemblyInfo.cs
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/Production-Tools.csproj.CoreCompileInputs.cache
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/Production-Tools.rhp
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/refint/Production-Tools.rhp
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/Production-Tools.pdb
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/Production-Tools.genruntimeconfig.cache
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/ref/Production-Tools.rhp
