@@ -5,7 +5,8 @@ using Rhino.Commands;
 using Rhino.UI;
 
 
-namespace Production_Tools.Commands{
+namespace Production_Tools.Commands
+{
 
     public class ProductionToolsNewLayoutCommand : Command
     {

@@ -24,5 +24,13 @@ namespace Production_Tools
         // You can override methods here to change the plug-in behavior on
         // loading and shut down, add options pages to the Rhino _Option command
         // and maintain plug-in wide options in a document.
+        public void SaveString(string key, string value){
+            RhinoApp.WriteLine(key, " : ", value);
+            this.Settings.SetString(key, value);
+        }
+        public string LoadString(string key){
+            // some error handling should go here....
+            return this.Settings.GetString(key);
+        }
     }
 }

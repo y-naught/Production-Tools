@@ -12,3 +12,9 @@
 /Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/Production-Tools.pdb
 /Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/Production-Tools.genruntimeconfig.cache
 /Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/ref/Production-Tools.rhp
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/Production-Tools.sourcelink.json
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net7.0/Microsoft.Bcl.AsyncInterfaces.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net7.0/System.IO.Pipelines.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net7.0/System.Text.Encodings.Web.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net7.0/System.Text.Json.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net7.0/Producti.83D645B2.Up2Date

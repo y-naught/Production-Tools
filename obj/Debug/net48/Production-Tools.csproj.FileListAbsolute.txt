@@ -7,3 +7,15 @@
 /Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net48/Production-Tools.csproj.CoreCompileInputs.cache
 /Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net48/Production-Tools.rhp
 /Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net48/Production-Tools.pdb
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net48/Production-Tools.sourcelink.json
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net48/Microsoft.Bcl.AsyncInterfaces.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net48/System.Buffers.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net48/System.IO.Pipelines.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net48/System.Memory.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net48/System.Numerics.Vectors.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net48/System.Runtime.CompilerServices.Unsafe.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net48/System.Text.Encodings.Web.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net48/System.Text.Json.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net48/System.Threading.Tasks.Extensions.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/bin/Debug/net48/System.ValueTuple.dll
+/Users/gregoryking/Documents/GitHub/Production-Tools/obj/Debug/net48/Producti.83D645B2.Up2Date
