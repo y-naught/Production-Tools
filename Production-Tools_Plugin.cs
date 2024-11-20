@@ -28,9 +28,15 @@ namespace Production_Tools
             RhinoApp.WriteLine(key, " : ", value);
             this.Settings.SetString(key, value);
         }
-        public string LoadString(string key){
-            // some error handling should go here....
-            return this.Settings.GetString(key);
+        public string LoadString(string key, string default_value){
+            try{
+                return this.Settings.GetString(key);
+            }catch{
+                // if string doesn't exist, go ahead and initialize it with a default value, then retrieve that value
+                SaveString(key, default_value);
+                return this.Settings.GetString(key);
+            }
+            
         }
     }
 }

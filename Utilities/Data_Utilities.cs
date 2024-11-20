@@ -20,6 +20,8 @@ namespace Production_Tools.Utilities
 
         const string template_key = "layout_template";
         public static List<Layout_Template> Layouts = new List<Layout_Template>();
+        public static List<string> template_names = new List<string>();
+        public static Layout_Template Blank_Template = new Layout_Template();
 
 
 
@@ -41,23 +43,42 @@ namespace Production_Tools.Utilities
                 string stringified_template = JsonSerializer.Serialize(template, options);
                 string template_name = template.Name;
                 Production_ToolsPlugin.Instance.SaveString(template_name, stringified_template);
+                SaveTemplate(template_name);
                 return 1;
             }
         }
         
         public static Layout_Template RetrieveTemplate(string template_name){
             var options = new JsonSerializerOptions { IncludeFields = true };
-            string raw_template_string = Production_ToolsPlugin.Instance.LoadString(template_name);
+            string default_value = JsonSerializer.Serialize(Blank_Template, options);
+            string raw_template_string = Production_ToolsPlugin.Instance.LoadString(template_name, default_value);
             RhinoApp.WriteLine(raw_template_string);
             Layout_Template retrieved_template = JsonSerializer.Deserialize<Layout_Template>(raw_template_string, options);
             return retrieved_template;
         }
 
-                // --- TODO --- 
-        // Initializer function for retrieving stored layouts
-        public static List<Layout_Template> GetStoredLayouts(){
-            // fill this in
-            return null;
+        public static List<string> GetTemplateNames(){
+            var options = new JsonSerializerOptions { IncludeFields = true };
+            string default_value = JsonSerializer.Serialize(template_names, options);
+            string raw_template_list = Production_ToolsPlugin.Instance.LoadString("Template Names", default_value);
+            RhinoApp.WriteLine(raw_template_list);
+            if(raw_template_list != null){
+                List<string> template_names = JsonSerializer.Deserialize<List<string>>(raw_template_list, options);
+                return template_names;
+            }else{
+                //initialize list
+                List<string> template_names = new List<string>();
+                Production_ToolsPlugin.Instance.SaveString("Template Names", JsonSerializer.Serialize(template_names, options));
+                return template_names;
+            }
+        }
+
+        public static void SaveTemplate(string new_template_name){
+            var current_templates = GetTemplateNames();
+            current_templates.Add(new_template_name);
+
+            var options = new JsonSerializerOptions { IncludeFields = true };
+            Production_ToolsPlugin.Instance.SaveString("Template Names", JsonSerializer.Serialize(current_templates, options));
         }
 
         public static string GetFilePathFromUser(){
@@ -121,7 +142,19 @@ namespace Production_Tools.Utilities
                     }
                 }
 
+                //var rc = Result.Cancel;
                 // Create secondary ETO window with the info we extracted from the layout template
+                var temp_dialog = new Views.ProducitonToolsSetupDynamicFormDialog(user_string_list, user_enum_list, filePath);
+
+                var dialog_rc = temp_dialog.ShowModal(RhinoEtoApp.MainWindow);
+                if(dialog_rc == Eto.Forms.DialogResult.Ok){
+                    //rc = Result.Success;
+                    RhinoApp.WriteLine("Success in exiting dialog");
+                }else{
+                    RhinoApp.WriteLine("User canceled dialog");
+                }
+                
+
                 
             }
             else{
