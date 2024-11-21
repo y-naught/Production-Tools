@@ -36,7 +36,6 @@ namespace Production_Tools
                 SaveString(key, default_value);
                 return this.Settings.GetString(key);
             }
-            
         }
     }
 }

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography.X509Certificates;
 using Eto.Forms;
 using Rhino.Commands;
 using Rhino;

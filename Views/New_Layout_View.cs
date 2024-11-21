@@ -28,6 +28,11 @@ namespace Production_Tools.Views
             AbortButton = new Button { Text = "Cancel" };
             AbortButton.Click += (sender, e) => Close(DialogResult.Cancel);
 
+            PageNameLabel = new Label();
+            PageNameLabel.Text = "Page Name :";
+
+            PageName = new TextBox();
+            PageName.Text = "";
 
             LayoutDropdown = new DropDown();
             TemplateNames = Utilities.Layout_Storage.GetTemplateNames();
@@ -63,6 +68,7 @@ namespace Production_Tools.Views
                 Rows =
                 {
                     new TableRow(dropdown_layout),
+                    new TableRow(PageNameLabel, PageName),
                     new TableRow(button_layout),
                     new TableRow(defaults_layout)
                 }
@@ -72,6 +78,9 @@ namespace Production_Tools.Views
         public DropDown LayoutDropdown {get; set;}
         List<string> TemplateNames{get; set;}
         RhinoDoc CurrentDoc {get; set;}
+        TextBox PageName {get; set;}
+        Label PageNameLabel {get; set;}
+
 
         protected override void OnLoadComplete(EventArgs e)
         {
@@ -101,15 +110,21 @@ namespace Production_Tools.Views
             cmd += (char)34 + file_path + (char)34;
             cmd += (char)32 + pg_number.ToString();
             cmd += (char)32 + "_Enter";
-            RhinoApp.WriteLine(cmd);
 
-            bool result = RhinoApp.RunScript(cmd, true);
-            if (result){
-                RhinoApp.WriteLine("Successfully imported layout from file : " + file_path);
+            
+            if(Utilities.Layout_Tools.ValidateTemplateName(PageName.Text, CurrentDoc)){
+
+                bool result = RhinoApp.RunScript(cmd, true);
+                if (result){
+                    RhinoApp.WriteLine("Successfully imported layout from file : " + file_path);
+                    Utilities.Layout_Tools.RenameLayout("LAYOUT_TEMPLATE", PageName.Text, CurrentDoc);
+                    Utilities.Layout_Tools.AddLayoutPage(CurrentDoc, PageName.Text, current_template);
+                }else{
+                    RhinoApp.WriteLine("Failed to import layout");
+                }
             }else{
-                RhinoApp.WriteLine("Failed to import layout");
+                RhinoApp.WriteLine("Name invalid");
             }
-
         }
     }
 }
