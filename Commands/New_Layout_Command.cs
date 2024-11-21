@@ -7,7 +7,7 @@ using Rhino.UI;
 
 namespace Production_Tools.Commands
 {
-
+    [Rhino.Commands.CommandStyle(Rhino.Commands.Style.ScriptRunner)]
     public class ProductionToolsNewLayoutCommand : Command
     {
         public ProductionToolsNewLayoutCommand()
@@ -25,7 +25,7 @@ namespace Production_Tools.Commands
 
             if (mode == RunMode.Interactive){
                 // create dialog here
-                var dialog = new Views.ProductionToolsNewLayoutDialog();
+                var dialog = new Views.ProductionToolsNewLayoutDialog(doc);
                 var dialog_rc = dialog.ShowModal(RhinoEtoApp.MainWindow);
                 if (dialog_rc == Eto.Forms.DialogResult.Ok)
                     rc = Result.Success;
