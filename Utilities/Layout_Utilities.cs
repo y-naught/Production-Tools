@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Runtime.InteropServices;
 using Rhino.DocObjects.Custom;
 using Rhino.FileIO;
+using Eto.Forms;
 
 
 // A set of tools that allow for making adjustments to Layouts and their layers
@@ -74,6 +75,7 @@ namespace Production_Tools.Utilities
             var new_layout = new Layout_Page(_name, _template_name, doc);
             Layout_Pages.Add(new_layout);
             SaveLayoutPages(doc);
+            UpdateFields(doc, _template_name);
         }
 
         public static void SaveLayoutPages(RhinoDoc doc){
@@ -120,6 +122,68 @@ namespace Production_Tools.Utilities
                 }
             }
         }
+
+
+        // Methods for saving string fields in document user text
+        public static void SaveUserStringFields(RhinoDoc doc){
+            var options = new JsonSerializerOptions{ IncludeFields = true};
+            string serialized_string_fields = JsonSerializer.Serialize(String_Fields, options);
+            doc.Strings.SetString("String Fields", serialized_string_fields);
+        }
+
+        public static List<User_String> RetrieveUserStringFields(RhinoDoc doc){
+            string string_fields_string = doc.Strings.GetValue("String Fields");
+            if(string_fields_string != null){
+                var options = new JsonSerializerOptions{ IncludeFields = true};
+                var _string_fields = JsonSerializer.Deserialize<List<User_String>>(string_fields_string, options);
+                String_Fields = _string_fields;
+            }else{
+                SaveUserStringFields(doc);
+            }
+
+            return String_Fields;
+        }
+
+        public static string GetStringField(RhinoDoc doc, string key){
+            string retrieved_value = doc.Strings.GetValue("User Strings", key);
+            if(retrieved_value != null){
+                return retrieved_value;
+            }else{
+                return "";
+            }
+        }
+
+        public static void SetStringField(RhinoDoc doc, string key, string value){
+            doc.Strings.SetString("User Strings", key, value);
+        }
+
+        // Methods for saving enum fields in document user text
+        public static void SaveUserEnumFields(RhinoDoc doc){
+            var options = new JsonSerializerOptions{ IncludeFields = true};
+            string serialized_string_fields = JsonSerializer.Serialize(Enum_Fields, options);
+            doc.Strings.SetString("Enum Fields", serialized_string_fields);
+        }
+
+        public static List<User_Enum> RetrieveUserEnumFields(RhinoDoc doc){
+            string enum_fields_string = doc.Strings.GetValue("Enum Fields");
+            if(enum_fields_string != null){
+                var options = new JsonSerializerOptions{ IncludeFields = true};
+                var _enum_fields = JsonSerializer.Deserialize<List<User_Enum>>(enum_fields_string, options);
+                Enum_Fields = _enum_fields;
+            }else{
+                SaveUserEnumFields(doc);
+            }
+            return Enum_Fields;
+        }
+
+        public static void SetEnumField(RhinoDoc doc, string key, string value){
+            doc.Strings.SetString("User Enums", key, value);
+        }
+
+        public static string GetEnumField(RhinoDoc doc, string key){
+            return doc.Strings.GetValue("User Enums", key);
+        }
+
     }
 
 
