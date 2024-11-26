@@ -13,7 +13,7 @@ namespace Production_Tools.Views
         public ProductionToolsLayoutGroupsDialog(RhinoDoc doc)
         {
             Padding = new Padding(5);
-            Resizable = false;
+            Resizable = true;
             Result = DialogResult.Cancel;
             Title = GetType().Name;
             WindowStyle = WindowStyle.Default;
@@ -37,17 +37,31 @@ namespace Production_Tools.Views
             GroupNameTextbox = new TextBox();
             GroupNameTextbox.Text = "";
 
-            LayoutDropdown = new DropDown();
-            TemplateNames = Utilities.Layout_Storage.GetTemplateNames();
-            LayoutDropdown.DataStore = TemplateNames;
-            LayoutDropdown.SelectedIndex = 0;
+            GroupListBox = new ListBox();
+            GroupNames = Utilities.Layout_Groups.RetrieveGroups(CurrentDoc);
+            GroupListBox.DataStore = GroupNames;
+            GroupListBox.SelectedIndex = 0;
 
 
             var button_layout = new TableLayout
             {
                 Padding = new Padding(5, 10, 5, 5),
                 Spacing = new Size(5, 5),
-                Rows = { new TableRow(null, NewGroupButton, null) }
+                Rows = { new TableRow( NewGroupButton, DeleteGroupButton) }
+            };
+
+            var group_name_layout = new TableLayout
+            {
+                Padding = new Padding(5, 10, 5, 5),
+                Spacing = new Size(5, 5),
+                Rows = { new TableRow(GroupNameLabel, GroupNameTextbox) }
+            };
+
+            var dropdown_layout = new TableLayout
+            {
+                Padding = new Padding(5, 10, 5, 5),
+                Spacing = new Size(5,5),
+                Rows = {new TableRow(GroupListBox)}
             };
 
             var defaults_layout = new TableLayout
@@ -57,32 +71,26 @@ namespace Production_Tools.Views
                 Rows = { new TableRow(null, DefaultButton, AbortButton, null) }
             };
 
-            var dropdown_layout = new TableLayout
-            {
-                Padding = new Padding(5, 10, 5, 5),
-                Spacing = new Size(5,5),
-                Rows = {new TableRow(LayoutDropdown)}
-            };
-
-            Content = new TableLayout
+            Content = new DynamicLayout
             {
                 Padding = new Padding(5),
                 Spacing = new Size(5, 5),
                 Rows =
                 {
-                    new TableRow(dropdown_layout),
-                    new TableRow(GroupNameLabel, GroupNameTextbox),
-                    new TableRow(button_layout),
-                    new TableRow(defaults_layout)
+                    new DynamicRow(dropdown_layout),
+                    new DynamicRow(group_name_layout),
+                    new DynamicRow(button_layout),
+                    new DynamicRow(defaults_layout)
                 }
             };
         }
 
-        public DropDown LayoutDropdown {get; set;}
-        List<string> TemplateNames{get; set;}
+        public ListBox GroupListBox {get; set;}
+        List<string> GroupNames{get; set;}
         RhinoDoc CurrentDoc {get; set;}
         TextBox GroupNameTextbox {get; set;}
         Label GroupNameLabel {get; set;}
+        
 
 
         protected override void OnLoadComplete(EventArgs e)
@@ -98,25 +106,45 @@ namespace Production_Tools.Views
         }
 
         protected void OnDeleteButton(){
-            RhinoApp.WriteLine("Deleting Group");
+            // RhinoApp.WriteLine("Deleting Group");
             // throw window of are you sure about to delete
-
+            
             // check if there is more than one group
-
-            // update layouts with the deleted group to group at index 0
-
-
+            var groups = Utilities.Layout_Groups.RetrieveGroups(CurrentDoc);
+            if(groups.Count > 1){
+                int group_index = GroupListBox.SelectedIndex;
+                string group_name = groups[group_index];
+                var new_groups = Utilities.Layout_Groups.RemoveGroup(CurrentDoc, group_name);
+                UpdateListBox();
+                // update layouts with the deleted group to group at index 0
+                Utilities.Layout_Tools.UpdatePageGroups(CurrentDoc, group_name, new_groups[0]);
+            }else{
+                RhinoApp.WriteLine("You can't delete the only group available");
+            }
         }
 
         protected void OnCreateButton(){
-            RhinoApp.WriteLine("Creating Layout Group");
+            // RhinoApp.WriteLine("Creating Layout Group");
             
-
             if(Utilities.Layout_Groups.ValidateGroupName(CurrentDoc, GroupNameTextbox.Text)){
-                RhinoApp.WriteLine("Creating Group for : " + GroupNameTextbox.Text);
+                Utilities.Layout_Groups.AddGroup(CurrentDoc, GroupNameTextbox.Text);
+                UpdateListBox();
+                // RhinoApp.WriteLine("Creating Group for : " + GroupNameTextbox.Text);
             }else{
                 RhinoApp.WriteLine("Group Name invalid or already taken");
             }
+        }
+
+        protected void UpdateListBox(){
+            var groups = Utilities.Layout_Groups.RetrieveGroups(CurrentDoc);
+            GroupNames = groups;
+            GroupListBox.DataStore = groups;
+            ResizeWindow();
+        }
+
+        protected void ResizeWindow(){
+            var preferred_size = Content.GetPreferredSize();
+            ClientSize = new Size((int)(preferred_size.Width + 20), (int)(preferred_size.Height + 20));
         }
     }
 }

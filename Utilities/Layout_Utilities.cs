@@ -81,6 +81,31 @@ namespace Production_Tools.Utilities
             UpdateFields(doc, _template_name);
         }
 
+        public static void RemoveLayoutPage(RhinoDoc doc, string _name){
+            foreach(var page in Layout_Pages){
+                if(page.Name == _name){
+                    bool removed_layer = Layer_Tools.RemoveLayoutLayer(doc, page.Name);
+                    bool removed_page = RemoveLayoutPageView(doc, page.Name);
+                    if(removed_layer && removed_page){
+                        Layout_Pages.Remove(page);
+                        SaveLayoutPages(doc);
+                        return;
+                    }
+                }
+            }
+        }
+
+        private static bool RemoveLayoutPageView(RhinoDoc doc, string _page_name){
+            var page_views = doc.Views.GetPageViews();
+            foreach(var view in page_views){
+                if(view.PageName == _page_name){
+                    bool success = view.Close();
+                    return success;
+                }
+            }
+            return false;
+        }
+
         public static void SaveLayoutPages(RhinoDoc doc){
             var options = new JsonSerializerOptions{ IncludeFields = true};
             string serialized_layouts = JsonSerializer.Serialize(Layout_Pages, options);
@@ -256,9 +281,17 @@ namespace Production_Tools.Utilities
                     }
                 }
             }
-
         }
 
+        public static void UpdatePageGroups(RhinoDoc doc, string removed_group, string replace_group){
+            RetrieveLayoutPages(doc);
+            foreach(var page in Layout_Pages){
+                if(page.LayoutGroup == removed_group){
+                    page.LayoutGroup = replace_group;
+                }
+            }
+            SaveLayoutPages(doc);
+        }
     }
 
 
@@ -304,12 +337,18 @@ namespace Production_Tools.Utilities
             var layer_children = cur_layer.GetChildren();
             foreach(Layer child in layer_children){
                 if(child.Name == enum_highlight){
+                    
                     child.IsVisible = true;
+                    child.SetPersistentVisibility(true);
                 }else{
                     child.IsVisible = false;
+                    child.SetPersistentVisibility(false);
                 }
+                var cur_index = child.Index;
+                // doc.Layers.Modify(child, cur_index, true);
             }
-            doc.Views.Redraw();
+            
+            // doc.Views.Redraw();
         }
 
         /// <summary>
@@ -434,7 +473,6 @@ namespace Production_Tools.Utilities
         /// <returns>List of strings which represent the names of the groups</returns>
         public static List<string> RetrieveGroups(RhinoDoc doc){
             string layout_groups_value = doc.Strings.GetValue("Layout Groups");
-            RhinoApp.WriteLine(layout_groups_value);
             if(layout_groups_value != null){
                 var options = new JsonSerializerOptions{ IncludeFields = true};
                 var groups = JsonSerializer.Deserialize<List<string>>(layout_groups_value, options);
@@ -451,7 +489,7 @@ namespace Production_Tools.Utilities
         /// </summary>
         /// <param name="group_name">Name of layout group to add</param>
         /// <param name="doc">The RhinoDoc object you want to write the Groups variable to the Document User Text</param>
-        public static void AddGroup(string group_name, RhinoDoc doc){
+        public static void AddGroup( RhinoDoc doc, string group_name){
             if(ValidateGroupName(doc, group_name)){
                 Groups.Add(group_name);
                 WriteGroups(doc);
@@ -463,11 +501,12 @@ namespace Production_Tools.Utilities
         /// </summary>
         /// <param name="group_name">The group name you want to remove</param>
         /// <param name="doc">The RhinoDoc object you want to write the new Groups List to</param>
-        public static void RemoveGroup(string group_name, RhinoDoc doc){
+        public static List<string> RemoveGroup(RhinoDoc doc, string group_name){
             if(Groups.Contains(group_name)){
                 Groups.Remove(group_name);
                 WriteGroups(doc);
             }
+            return Groups;
         }
 
         /// <summary>
@@ -476,6 +515,7 @@ namespace Production_Tools.Utilities
         /// <param name="groupName">Group name to validate</param>
         /// <returns>Whether or not the group name is already in the list</returns>
         public static bool ValidateGroupName(RhinoDoc doc, string groupName){
+            Groups = RetrieveGroups(doc);
             if(Groups.Contains(groupName)){
                 RhinoApp.WriteLine("Group name already taken");
                 return false;

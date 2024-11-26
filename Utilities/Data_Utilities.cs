@@ -63,7 +63,6 @@ namespace Production_Tools.Utilities
             var options = new JsonSerializerOptions { IncludeFields = true };
             string default_value = JsonSerializer.Serialize(Blank_Template, options);
             string raw_template_string = Production_ToolsPlugin.Instance.LoadString(template_name, default_value);
-            RhinoApp.WriteLine(raw_template_string);
             Layout_Template retrieved_template = JsonSerializer.Deserialize<Layout_Template>(raw_template_string, options);
             return retrieved_template;
         }

@@ -6,6 +6,7 @@ using Rhino.UI;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Production_Tools.Views
@@ -15,7 +16,7 @@ namespace Production_Tools.Views
         public ProductionToolsLayoutManagerDialog(RhinoDoc doc)
         {
             Padding = new Padding(5);
-            Resizable = false;
+            Resizable = true;
             Result = DialogResult.Cancel;
             Title = GetType().Name;
             WindowStyle = WindowStyle.Default;
@@ -36,6 +37,7 @@ namespace Production_Tools.Views
             LayoutListBox = new ListBox();
             LayoutListBox.DataStore = Layout_Tools.GetLayoutNames(CurrentDoc);
             LayoutListBox.SelectedIndex = InitializeLayoutListBoxSelectedIndex();
+            LayoutListBox.SelectedIndexChanged += (sender, e) => UpdateLayoutGroupDropdown();
 
             LayoutGroupDropdown = new DropDown();
             LayoutGroupDropdown.DataStore = Layout_Groups.RetrieveGroups(CurrentDoc);
@@ -70,16 +72,16 @@ namespace Production_Tools.Views
                 Rows = { new TableRow(null, DefaultButton, AbortButton, null) }
             };
 
-            Content = new TableLayout
+            Content = new DynamicLayout
             {
                 Padding = new Padding(5),
                 Spacing = new Size(5, 5),
                 Rows =
                 {
-                    new TableRow(listbox_layout),
-                    new TableRow(group_dropdown_layout),
-                    new TableRow(button_layout),
-                    new TableRow(defaults_layout)
+                    new DynamicRow(listbox_layout),
+                    new DynamicRow(group_dropdown_layout),
+                    new DynamicRow(button_layout),
+                    new DynamicRow(defaults_layout)
                 }
             };
         }
@@ -101,13 +103,26 @@ namespace Production_Tools.Views
             return selected_index;
         }
 
-        protected void UpdateLayoutsListBox(){
-            LayoutListBox.DataStore = Layout_Tools.RetrieveLayoutPages(CurrentDoc);
+        protected void UpdateLayoutsListBox(int new_selected_index){
+            LayoutListBox.DataStore = Layout_Tools.GetLayoutNames(CurrentDoc);
+            LayoutListBox.SelectedIndex = new_selected_index;
+            ResizeWindow();
         }
 
         protected void UpdateLayoutGroupDropdown(){
             var page_views = CurrentDoc.Views.GetPageViews();
-            var current_view = page_views[LayoutListBox.SelectedIndex];
+            var cur_selected_index = LayoutListBox.SelectedIndex;
+            RhinoApp.WriteLine("page_views.Length : " + page_views.Length.ToString());
+            RhinoApp.WriteLine("cur_selected_index : " + cur_selected_index.ToString());
+            if(cur_selected_index >= page_views.Length || cur_selected_index < 0){
+                if(page_views.Length <= 0){
+                    RhinoApp.WriteLine("There are currently no layouts to view");
+                    return;
+                }
+                cur_selected_index = page_views.Length - 1;
+            }
+            
+            var current_view = page_views[cur_selected_index];
             var layouts = Layout_Tools.RetrieveLayoutPages(CurrentDoc);
             var layout_groups = Layout_Groups.RetrieveGroups(CurrentDoc);
             foreach(var layout in layouts){
@@ -126,11 +141,26 @@ namespace Production_Tools.Views
         protected void OnUpdateClick(EventArgs e){
             // Update the layout with info in boxes
             RhinoApp.WriteLine("Updating layout");
+            var layouts = Layout_Tools.RetrieveLayoutPages(CurrentDoc);
+            var layout_groups = Layout_Groups.RetrieveGroups(CurrentDoc);
+            var new_group = layout_groups[LayoutGroupDropdown.SelectedIndex];
+            layouts[LayoutListBox.SelectedIndex].LayoutGroup = new_group;
+            Layout_Tools.Layout_Pages = layouts;
+            Layout_Tools.SaveLayoutPages(CurrentDoc);
         }
 
         protected void OnDeleteClick(EventArgs e){
             // Delete a layout upon clicking this and bring up an are you sure window. 
             RhinoApp.WriteLine("Deleting layout!");
+            var layouts = Layout_Tools.RetrieveLayoutPages(CurrentDoc);
+            string layout_to_remove = layouts[LayoutListBox.SelectedIndex].Name;
+            Layout_Tools.RemoveLayoutPage(CurrentDoc, layout_to_remove);
+            int new_selected_index = LayoutListBox.SelectedIndex - 1;
+            if(new_selected_index < 0){
+                new_selected_index = 0;
+            }
+            
+            UpdateLayoutsListBox(new_selected_index);
         }
 
         protected override void OnLoadComplete(EventArgs e)
@@ -143,6 +173,11 @@ namespace Production_Tools.Views
         {
             this.SavePosition();
             base.OnClosing(e);
+        }
+
+        protected void ResizeWindow(){
+            var preferred_size = Content.GetPreferredSize();
+            ClientSize = new Size((int)(preferred_size.Width + 20), (int)(preferred_size.Height + 20));
         }
     }
 }
