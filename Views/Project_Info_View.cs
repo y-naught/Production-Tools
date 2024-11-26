@@ -22,15 +22,13 @@ namespace Production_Tools.Views
             Title = GetType().Name;
             WindowStyle = WindowStyle.Default;
             CurrentDoc = doc;
-
             
             
-            
-            var temp_string_fields = Utilities.Layout_Tools.RetrieveUserStringFields(doc);
+            var temp_string_fields = Layout_Tools.RetrieveUserStringFields(doc);
             
             foreach (var field in temp_string_fields){
                 var cur_field = new User_String_Field(field);
-                cur_field.User_Label.Text = Utilities.Layout_Tools.GetStringField(doc, field.Name);
+                cur_field.User_Label.Text = Layout_Tools.GetStringField(doc, field.Name);
                 string_fields.Add(cur_field);
             }
             
@@ -45,7 +43,7 @@ namespace Production_Tools.Views
                 strings_layout.Rows.Add(temp_row);
             }
 
-            var temp_enum_fields = Utilities.Layout_Tools.RetrieveUserEnumFields(doc);
+            var temp_enum_fields = Layout_Tools.RetrieveUserEnumFields(doc);
 
 
             var enums_layout = new TableLayout
@@ -62,7 +60,7 @@ namespace Production_Tools.Views
                      dropdown_strings.Add(sub_layer.Text);
                 }
                 cur_dropdown.DataStore = dropdown_strings;
-                string selected_enum_string = Utilities.Layout_Tools.GetEnumField(doc, field.Name);
+                string selected_enum_string = Layout_Tools.GetEnumField(doc, field.Name);
                 if(selected_enum_string != null){
                     cur_dropdown.SelectedIndex = dropdown_strings.IndexOf(selected_enum_string);
                 }else{
@@ -71,7 +69,9 @@ namespace Production_Tools.Views
                 var label_row = new TableRow(cur_field.Layer_Label);
                 var dropdown_row = new TableRow(cur_dropdown);
 
+                enum_fields.Add(cur_field);
                 enum_dropdowns.Add(cur_dropdown);
+
                 enums_layout.Rows.Add(label_row);
                 enums_layout.Rows.Add(dropdown_row);
             }
@@ -109,23 +109,43 @@ namespace Production_Tools.Views
         public List<User_String_Field> string_fields = new List<User_String_Field>();
         public List<User_Enum_Field> enum_fields = new List<User_Enum_Field>();
         public List<DropDown> enum_dropdowns = new List<DropDown>();
+        RhinoDoc CurrentDoc { get; set; }
 
+        /// <summary>
+        /// Updates the values of all fields in the Document User Strings and calls the 
+        /// UpdateLayoutPages function in Layout_Tools static object. 
+        /// </summary>
         protected void UpdatePageValues(){
-            // --- TODO ---
-            // update each layout with the new values here
+            var layout_pages = Utilities.Layout_Tools.RetrieveLayoutPages(CurrentDoc);
+            
+            foreach(var field in string_fields){
+                var layer_name = field.Layer_Label.Text;
+                var value = field.User_Label.Text;
+                Layout_Tools.SetStringField(CurrentDoc, layer_name, value);
+            }
+
+            // Saves new data
+            for(int i = 0; i < enum_fields.Count(); i++){
+                var layer_name = enum_fields[i].Layer_Label.Text;
+                int enum_index = enum_dropdowns[i].SelectedIndex;
+                var selected_string = enum_fields[i].Sub_Layer_Labels[enum_index].Text;
+                Layout_Tools.SetEnumField(CurrentDoc, layer_name, selected_string);
+            }
 
             // saves new data in document user text
             foreach(var string_field in string_fields){
-                Utilities.Layout_Tools.SetStringField(CurrentDoc, string_field.Layer_Label.Text, string_field.User_Label.Text);
+                Layout_Tools.SetStringField(CurrentDoc, string_field.Layer_Label.Text, string_field.User_Label.Text);
             }
 
             // Saves the selected value of the enum dropdown based on what was selected with update button was pressed. 
-            // ---TODO---
-            // This does not appear to be saving the correct value
-            for(int i = 0; i < enum_fields.Count; i++){
-                Utilities.Layout_Tools.SetEnumField(CurrentDoc, enum_fields[i].Layer_Label.Text, enum_fields[i].Sub_Layer_Labels[enum_dropdowns[i].SelectedIndex].Text);
+            for(int i = 0; i < enum_fields.Count(); i++){
+                var enum_list = enum_dropdowns[i].DataStore.ToList();
+                int selected_index = enum_dropdowns[i].SelectedIndex;
+                Layout_Tools.SetEnumField(CurrentDoc, enum_fields[i].Layer_Label.Text, enum_list[selected_index].ToString());
             }
 
+            Layout_Tools.UpdatePageValues(CurrentDoc);
+            
         }
 
         protected override void OnLoadComplete(EventArgs e)
@@ -139,6 +159,6 @@ namespace Production_Tools.Views
             this.SavePosition();
             base.OnClosing(e);
         }
-        RhinoDoc CurrentDoc { get; set; }
+        
     }
 }

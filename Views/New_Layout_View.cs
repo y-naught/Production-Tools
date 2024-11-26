@@ -119,6 +119,7 @@ namespace Production_Tools.Views
                     RhinoApp.WriteLine("Successfully imported layout from file : " + file_path);
                     Utilities.Layout_Tools.RenameLayout("LAYOUT_TEMPLATE", PageName.Text, CurrentDoc);
                     Utilities.Layout_Tools.AddLayoutPage(CurrentDoc, PageName.Text, current_template);
+                    Utilities.Layout_Tools.UpdatePageValues(CurrentDoc);
                 }else{
                     RhinoApp.WriteLine("Failed to import layout");
                 }

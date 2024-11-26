@@ -34,7 +34,7 @@ namespace Production_Tools.Views
             check_template_button.Click += (sender, e) => OnStringClick(e);
 
             var remove_layout_button = new Button {Text="Remove Template"};
-            remove_layout_button.Click += (sender, e) => OnStringClick(e);
+            remove_layout_button.Click += (sender, e) => OnRemoveClick(e);
 
             DefaultButton = new Button { Text = "OK" };
             DefaultButton.Click += (sender, e) => Close(DialogResult.Ok);
@@ -52,7 +52,7 @@ namespace Production_Tools.Views
             {
                 Padding = new Padding(5, 10, 5, 5),
                 Spacing = new Size(5, 5),
-                Rows = { new TableRow(add_layout_button, check_template_button) }
+                Rows = { new TableRow(add_layout_button, check_template_button, remove_layout_button) }
             };
 
             var defaults_layout = new TableLayout
@@ -87,18 +87,29 @@ namespace Production_Tools.Views
             this.SavePosition();
             base.OnClosing(e);
         }
+
+        /// <summary>
+        /// Click handler function for the Add button
+        /// </summary>
+        /// <param name="e">Event arguments</param>
         protected void OnAddClick(EventArgs e){
             // run some code here that starts the add
             string user_path = Utilities.Layout_Storage.GetFilePathFromUser();
-            Utilities.Layout_Storage.GetLayersFromTemplate(user_path);
+            bool successfully_read_template = Utilities.Layout_Storage.GetLayersFromTemplate(user_path);
+            if(successfully_read_template){
+                UpdateListBox();
+            }
         }
 
         protected void OnRemoveClick(EventArgs e){
             var selected_template = LayoutListBox.DataStore.ToList();
-            var selected_template_name = selected_template[LayoutListBox.SelectedIndex];
+            string selected_template_name = selected_template[LayoutListBox.SelectedIndex].ToString();
+
             // add remove string here, need function 
-            // Utities.Layout_Storage.RemoveTemplate(selected_template_name)
+            Utilities.Layout_Storage.RemoveTemplate(selected_template_name);
+            UpdateListBox();
         }
+
 
         protected void OnStringClick(EventArgs e){
             var selected_template = LayoutListBox.DataStore.ToList();

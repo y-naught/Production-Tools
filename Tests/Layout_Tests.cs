@@ -11,7 +11,7 @@ namespace Production_Tools.Tests
 
         Utilities.User_Enum sample_enum = new Utilities.User_Enum("Project Status", "Set_Project_Status", new List<string>{"Client Review", "Approved For Production", "Internal Review", "For Engineering Review"});
         
-        Utilities.Layout_Template sample_layout_template = new Utilities.Layout_Template("Layout Template 1", new List<Utilities.User_String>{sample_string}, new List<Utilities.User_Enum>{sample_enum}, "/path/to/file/in/local/storage.3dm");
+        Utilities.Layout_Template sample_layout_template = new Utilities.Layout_Template("Layout Template 1", new List<Utilities.User_String>{sample_string}, new List<Utilities.User_Enum>{sample_enum}, "/path/to/file/in/local/storage.3dm", true, true);
         
         return sample_layout_template;
         }

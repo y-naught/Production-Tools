@@ -37,5 +37,10 @@ namespace Production_Tools
                 return this.Settings.GetString(key);
             }
         }
+
+        public void RemoveString(string key){
+            RhinoApp.WriteLine("Removing : " + key + " from template list");
+            this.Settings.DeleteItem(key);
+        }
     }
 }

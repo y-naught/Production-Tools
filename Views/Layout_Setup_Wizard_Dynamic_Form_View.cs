@@ -14,7 +14,7 @@ namespace Production_Tools.Views
     class ProducitonToolsSetupDynamicFormDialog : Dialog<DialogResult>
     {
 
-        public ProducitonToolsSetupDynamicFormDialog(List<Utilities.User_String> user_strings, List<Utilities.User_Enum> user_enums, string template_file_path)
+        public ProducitonToolsSetupDynamicFormDialog(List<Utilities.User_String> user_strings, List<Utilities.User_Enum> user_enums, string template_file_path, bool _page_number_exists, bool _file_name_exists)
         {
             Padding = new Padding(5);
             Resizable = false;
@@ -63,9 +63,20 @@ namespace Production_Tools.Views
             template_name_box = new TextBox();
             template_name_box.Text = "";
 
+            page_reserved_label = new Label();
+            page_reserved_label.Text = "Page Number Detected : ";
+            page_reserved_status = new Label();
+            page_reserved_status.Text = _page_number_exists.ToString();
+
+            file_name_reserved_label = new Label();
+            file_name_reserved_label.Text = "File Name Detected : ";
+            file_name_reserved_status = new Label();
+            file_name_reserved_status.Text = _file_name_exists.ToString();
+
+            // template name row
             var template_name_row = new TableRow(template_name_label, template_name_box);
 
-            // Add all the labels to the dynamic layout
+            // User string types section
             var strings_label = new Label();
             strings_label.Text = "Strings";
             var string_label_row = new TableRow(strings_label);
@@ -81,6 +92,8 @@ namespace Production_Tools.Views
                 strings_layout.Rows.Add(row);
             }
 
+
+            // Enumerated types section
             var enums_label = new Label();
             enums_label.Text = "Enumerated Types";
 
@@ -95,6 +108,21 @@ namespace Production_Tools.Views
                 enums_layout.Rows.Add(row);
             }
 
+            // reserved section elements
+            var reserved_label = new Label();
+            enums_label.Text = "Reserved Layer Status";
+
+            var reserved_layout = new TableLayout
+            {
+                Padding = new Padding(5, 10, 5, 5),
+                Spacing = new Size(5, 5)
+            };
+
+            reserved_layout.Rows.Add(new TableRow(reserved_label));
+            reserved_layout.Rows.Add(new TableRow(page_reserved_label, page_reserved_status));
+            reserved_layout.Rows.Add(new TableRow(file_name_reserved_label, file_name_reserved_status));
+            
+            // Overall window layout
             var defaults_layout = new TableLayout
             {
                 Padding = new Padding(5, 10, 5, 5),
@@ -112,6 +140,7 @@ namespace Production_Tools.Views
                     template_name_row,
                     new TableRow(strings_layout),
                     new TableRow(enums_layout),
+                    new TableRow(reserved_layout),
                     new TableRow(AddTemplateButton),
                     new TableRow(defaults_layout)
                 }
@@ -126,6 +155,12 @@ namespace Production_Tools.Views
         public string file_path { get; set; }
         public Label template_name_label {get; set;}
         public TextBox template_name_box {get; set;}
+        public Label page_reserved_label {get; set;}
+        public Label page_reserved_status {get; set;}
+        public Label file_name_reserved_label { get; set;}
+        public Label file_name_reserved_status {get; set;}
+
+        
 
 
         // Button Functions
@@ -139,6 +174,11 @@ namespace Production_Tools.Views
             base.OnClosing(e);
         }
 
+        /// <summary>
+        /// Creates objects out of the fields that are filled out in the window and adds them 
+        /// to the plugin layout data
+        /// </summary>
+        /// <param name="e">event arguments</param>
         protected void OnAddClick(EventArgs e)
         {
             // Run functions for storing our new layout schema
@@ -165,7 +205,17 @@ namespace Production_Tools.Views
                 user_enum_objects.Add(cur_enum);
             }
 
-            var layout_template = new Utilities.Layout_Template(template_name, user_string_objects, user_enum_objects, file_path);
+            bool _page_number_exists = false;
+            bool _file_name_exists = false;
+            
+            if(page_reserved_status.Text == "true"){
+                _page_number_exists = true;
+            }
+            if(file_name_reserved_status.Text == "true"){
+                _file_name_exists = true;
+            }
+
+            var layout_template = new Utilities.Layout_Template(template_name, user_string_objects, user_enum_objects, file_path, _page_number_exists, _file_name_exists);
             var result = Utilities.Layout_Storage.AddLayoutTemplate(layout_template);
 
             if(result != 0){
