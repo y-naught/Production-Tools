@@ -98,6 +98,15 @@ namespace Production_Tools.Utilities
             return Layout_Pages;
         }
 
+        public static List<string> GetLayoutNames(RhinoDoc doc){
+            List<Layout_Page> layout_pages = RetrieveLayoutPages(doc);
+            List<string> page_names = new List<string>();
+            foreach(var layout in layout_pages){
+                page_names.Add(layout.Name);
+            }
+            return page_names;
+        }
+
         public static void UpdateFields(RhinoDoc doc, string template_name){
             var layout_template = Layout_Storage.RetrieveTemplate(template_name);
             foreach(var user_string in layout_template.User_Strings){
@@ -443,7 +452,7 @@ namespace Production_Tools.Utilities
         /// <param name="group_name">Name of layout group to add</param>
         /// <param name="doc">The RhinoDoc object you want to write the Groups variable to the Document User Text</param>
         public static void AddGroup(string group_name, RhinoDoc doc){
-            if(ValidateGroupName(group_name)){
+            if(ValidateGroupName(doc, group_name)){
                 Groups.Add(group_name);
                 WriteGroups(doc);
             }
@@ -466,7 +475,7 @@ namespace Production_Tools.Utilities
         /// </summary>
         /// <param name="groupName">Group name to validate</param>
         /// <returns>Whether or not the group name is already in the list</returns>
-        public static bool ValidateGroupName(string groupName){
+        public static bool ValidateGroupName(RhinoDoc doc, string groupName){
             if(Groups.Contains(groupName)){
                 RhinoApp.WriteLine("Group name already taken");
                 return false;
