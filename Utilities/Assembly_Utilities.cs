@@ -164,8 +164,15 @@ namespace Production_Tools.Utilities
         public static bool ValidateAssemblyName(RhinoDoc doc, string name){
             // --- TODO ---
             // Add the correct logic here
+            var assembly_names = GetAssemblyNames(doc);
+            foreach(var assembly_name in assembly_names){
+                if(assembly_name == name){
+                    return false;
+                }
+            }
             return true;
         }
+
         #endregion
 
         #region Component Storage
@@ -180,7 +187,7 @@ namespace Production_Tools.Utilities
 
         public static List<Guid> RetrieveComponentGuids(RhinoDoc doc){
             InitializeComponentGuidDataStore(doc);
-            Component_Guid_List = Storage_Utilities.RetrieveFromDocData<List<Guid>>(doc, Storage_Utilities.AssemblyGuidKey);
+            Component_Guid_List = Storage_Utilities.RetrieveFromDocData<List<Guid>>(doc, Storage_Utilities.ComponentGuidKey);
             return Component_Guid_List;
         }
 
@@ -223,13 +230,104 @@ namespace Production_Tools.Utilities
             }
         }
 
+        public static void AddComponent(RhinoDoc doc, Component _new_component){
+            RetrieveComponentList(doc);
+            RetrieveComponentGuids(doc);
+            Component_List.Add(_new_component);
+            Component_Guid_List.Add(_new_component.Id);
+            SaveComponentListToDataStore(doc);
+            SaveComponentGuids(doc);
+        }
 
+        public static void RemoveComponent(RhinoDoc doc, Guid component_id){
+            RetrieveComponentList(doc);
+            RetrieveComponentGuids(doc);
+            Component temp_component = RetrieveComponent(doc, component_id);
+            Component_List.Remove(temp_component);
+            Component_Guid_List.Remove(component_id);
+            doc.Strings.Delete(Storage_Utilities.ComponentSection, component_id.ToString());
+            SaveComponentListToDataStore(doc);
+            SaveComponentGuids(doc);
+        }
 
         #endregion
 
 
         #region Part Storage
 
+        public static void InitializePartGuidDataStore(RhinoDoc doc){
+            string part_guids = doc.Strings.GetValue(Storage_Utilities.PartGuidKey);
+            if(part_guids == null){
+                List<Guid> empty_list = new List<Guid>();
+                Storage_Utilities.StoreInDocData(doc, empty_list, Storage_Utilities.PartGuidKey);
+            }
+        }
+
+        public static List<Guid> RetrievePartGuid(RhinoDoc doc){
+            InitializePartGuidDataStore(doc);
+            Part_Guid_List = Storage_Utilities.RetrieveFromDocData<List<Guid>>(doc, Storage_Utilities.PartGuidKey);
+            return Part_Guid_List;
+        }
+
+        public static List<Part> RetrievePartList(RhinoDoc doc){
+            RetrievePartGuid(doc);
+            if(Part_Guid_List.Count == 0 || Part_Guid_List == null){
+                return Part_List;
+            }else{
+                var temp_part_list = new List<Part>();
+                foreach (var part_guid in Part_Guid_List){
+                    Part temp_part = RetrievePart(doc, part_guid);
+                    temp_part_list.Add(temp_part);
+                }
+                Part_List = temp_part_list;
+                return Part_List;
+            }
+        }
+
+        public static Part RetrievePart(RhinoDoc doc, Guid part_id){
+            string guid_string = part_id.ToString();
+            Part retrieved_part = Storage_Utilities.RetrieveFromDocData<Part>(doc, Storage_Utilities.ComponentSection, guid_string);
+            if(retrieved_part == null){
+                return null;
+            }else{
+                return retrieved_part;
+            }
+        }
+
+        public static void SavePartGuids(RhinoDoc doc){
+            Storage_Utilities.StoreInDocData(doc, Part_Guid_List, Storage_Utilities.PartGuidKey);
+        }
+
+        public static void SavePartToDataStore(RhinoDoc doc, Part _part){
+            Storage_Utilities.StoreInDocData(doc, _part, Storage_Utilities.PartSection, _part.GetIdString());
+        }
+
+        public static void SavePartListToDataStore(RhinoDoc doc){
+            foreach(var part in Part_List){
+                SavePartToDataStore(doc, part);
+            }
+        }
+
+        public static void AddPart(RhinoDoc doc, Part _new_part){
+            RetrievePartList(doc);
+            RetrievePartGuid(doc);
+            Part_List.Add(_new_part);
+            Part_Guid_List.Add(_new_part.Id);
+            SavePartListToDataStore(doc);
+            SavePartGuids(doc);
+        }
+
+        public static void RemovePart(RhinoDoc doc, Guid part_id){
+            RetrievePartList(doc);
+            RetrievePartGuid(doc);
+            Part temp_part = RetrievePart(doc, part_id);
+            Part_List.Remove(temp_part);
+            Part_Guid_List.Remove(part_id);
+            doc.Strings.Delete(Storage_Utilities.ComponentSection, part_id.ToString());
+            SavePartListToDataStore(doc);
+            SavePartGuids(doc);
+        }
+    
         #endregion
 
         // User Interface modifications
@@ -247,6 +345,8 @@ namespace Production_Tools.Utilities
                 RhinoApp.WriteLine("Failed to retrieve Geometry from selection");
             }
         }
+
+    
     }
 
     #region Class Definitions

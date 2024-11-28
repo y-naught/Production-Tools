@@ -22,5 +22,28 @@ namespace Production_Tools.Utilities
             var full_layer_path = "LAYOUTS::" + _layout_name;
             return full_layer_path;
         }
+
+        public static void CreateAssemblyLayer(RhinoDoc doc, string assembly_name){
+            InitializeAssemblyLayer(doc);
+            string full_layer_path = AssemblyString + "::" + assembly_name;
+            doc.Layers.FindByFullPath(full_layer_path, -1);
+        }
+
+        public static void InitializeAssemblyLayer(RhinoDoc doc){
+            int index = doc.Layers.FindByFullPath(AssemblyString, -1);
+            if(index == -1){
+                doc.Layers.AddPath(AssemblyString);
+            }
+        }
+
+        public static void InitializeLayoutLayer(RhinoDoc doc){
+            int index = doc.Layers.FindByFullPath(LayoutString, -1);
+            if(index == -1){
+                doc.Layers.AddPath(LayoutString);
+            }
+        }
+        
+        public static string AssemblyString = "ASSEMBLY";
+        public static string LayoutString = "LAYOUTS";
     }
 }
