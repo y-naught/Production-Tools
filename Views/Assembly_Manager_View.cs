@@ -5,6 +5,7 @@ using Rhino.UI;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using Production_Tools.Utilities;
 
 namespace Production_Tools.Views
 {
@@ -13,14 +14,20 @@ namespace Production_Tools.Views
         public ProductionToolsAssemblyManagerDialog(RhinoDoc doc)
         {
             Padding = new Padding(5);
-            Resizable = false;
+            Resizable = true;
             Result = DialogResult.Cancel;
             Title = GetType().Name;
             WindowStyle = WindowStyle.Default;
             CurrentDoc = doc;
 
-            var hello_button = new Button { Text = "Create New Layout" };
-            hello_button.Click += (sender, e) => OnCreateButton();
+            var CreateAssemblyButton = new Button { Text = "Create Assembly" };
+            CreateAssemblyButton.Click += (sender, e) => OnCreateAssemblyButton();
+
+            var RemoveAssemblyButton = new Button { Text = "Remove Assembly" };
+            RemoveAssemblyButton.Click += (sender, e) => OnRemoveAssemblyButton();
+
+            var PrintAssemblyButton = new Button { Text = "Print Assembly" };
+            PrintAssemblyButton.Click += (sender, e) => OnPrintAssemblyButton();
 
             DefaultButton = new Button { Text = "OK" };
             DefaultButton.Click += (sender, e) => Close(DialogResult.Ok);
@@ -28,58 +35,99 @@ namespace Production_Tools.Views
             AbortButton = new Button { Text = "Cancel" };
             AbortButton.Click += (sender, e) => Close(DialogResult.Cancel);
 
-            PageNameLabel = new Label();
-            PageNameLabel.Text = "Page Name :";
+            AssemblyNameLabel = new Label();
+            AssemblyNameLabel.Text = "Assembly Name :";
 
-            PageName = new TextBox();
-            PageName.Text = "";
+            AssemblyNameTextBox = new TextBox();
+            AssemblyNameTextBox.Text = "";
 
-            LayoutDropdown = new DropDown();
-            TemplateNames = Utilities.Layout_Storage.GetTemplateNames();
-            LayoutDropdown.DataStore = TemplateNames;
-            LayoutDropdown.SelectedIndex = 0;
+            // List Boxes for Assemblies, Components, and parts
+            Assemblies = new ListBox();
+            Assemblies.DataStore = Assembly_Tools.GetAssemblyNames(CurrentDoc);
+            Assemblies.SelectedIndex = 0;
+
+            Components = new ListBox();
+            // Components.DataStore = null;
+            // Components.SelectedIndex = 0;
+
+            Parts = new ListBox();
+            // Parts.DataStore = null;
+            // Parts.SelectedIndex = 0;
 
 
             var button_layout = new TableLayout
             {
                 Padding = new Padding(5, 10, 5, 5),
                 Spacing = new Size(5, 5),
-                Rows = { new TableRow(null, hello_button, null) }
+                Rows = { new TableRow(CreateAssemblyButton, RemoveAssemblyButton) }
             };
 
             var defaults_layout = new TableLayout
             {
                 Padding = new Padding(5, 10, 5, 5),
                 Spacing = new Size(5, 5),
-                Rows = { new TableRow(null, DefaultButton, AbortButton, null) }
+                Rows = { new TableRow(DefaultButton, AbortButton) }
             };
 
-            var dropdown_layout = new TableLayout
+            var assembly_listbox_layout = new TableLayout
             {
                 Padding = new Padding(5, 10, 5, 5),
-                Spacing = new Size(5,5),
-                Rows = {new TableRow(LayoutDropdown)}
+                Spacing = new Size(15,10),
+                Rows = {new TableRow(Assemblies)}
+            };
+            
+            var assembly_textbox_layout = new TableLayout
+            {
+                Padding = new Padding(5, 10, 5, 5),
+                Spacing = new Size(5, 5),
+                Rows = { new TableRow(AssemblyNameLabel, AssemblyNameTextBox) }
             };
 
-            Content = new TableLayout
+            var print_assembly_layout = new TableLayout
+            {
+                Padding = new Padding(5, 10, 5, 5),
+                Spacing = new Size(15,10),
+                Rows = {new TableRow(PrintAssemblyButton)}
+            };
+
+            Content = new DynamicLayout
             {
                 Padding = new Padding(5),
                 Spacing = new Size(5, 5),
                 Rows =
                 {
-                    new TableRow(dropdown_layout),
-                    new TableRow(PageNameLabel, PageName),
-                    new TableRow(button_layout),
-                    new TableRow(defaults_layout)
+                    new DynamicRow(assembly_listbox_layout),
+                    new DynamicRow(assembly_textbox_layout),
+                    new DynamicRow(button_layout),
+                    new DynamicRow(print_assembly_layout),
+                    new DynamicRow(defaults_layout)
                 }
             };
         }
 
-        public DropDown LayoutDropdown {get; set;}
-        List<string> TemplateNames{get; set;}
+
+        ListBox Assemblies { get; set; }
+        ListBox Components { get; set; }
+        ListBox Parts { get; set; }
         RhinoDoc CurrentDoc {get; set;}
-        TextBox PageName {get; set;}
-        Label PageNameLabel {get; set;}
+        Label AssemblyNameLabel {get; set;}
+        TextBox AssemblyNameTextBox {get; set;}
+        
+        protected void UpdateAssemblies(){
+            // Retrieve and update the listbox of assemblies here
+            List<string> assembly_list = Assembly_Tools.GetAssemblyNames(CurrentDoc);
+            Assemblies.DataStore = assembly_list;
+            ResizeWindow();
+        }
+
+        protected void UpdateComponents(){
+            // Retrieve and update the listbox of components here
+
+        }   
+
+        protected void UpdateParts(){
+            // Retrieve and update the listbox of parts here
+        }
 
 
         protected override void OnLoadComplete(EventArgs e)
@@ -94,21 +142,49 @@ namespace Production_Tools.Views
             base.OnClosing(e);
         }
 
-        protected void OnHelloButton()
-        {
-            RhinoApp.WriteLine("HALLO!");
-        }
-
-        protected void OnCreateButton(){
-            RhinoApp.WriteLine("Creating Assembly");
-
-            // Validate Assembly Manager Name
-            if(Utilities.Layout_Tools.ValidateTemplateName(PageName.Text, CurrentDoc)){
-
-
+        protected void OnCreateAssemblyButton(){
+            
+            string assembly_name = "assembly name";
+            
+            // Validate Assembly Name
+            if(Assembly_Tools.ValidateAssemblyName(CurrentDoc, assembly_name)){
+                RhinoApp.WriteLine("Creating Assembly");
+                // GetUserObjects();
+                Assembly new_assembly = new Assembly(assembly_name);
+                Assembly_Tools.AddAssembly(CurrentDoc, new_assembly);
+                UpdateAssemblies();
             }else{
                 RhinoApp.WriteLine("Name invalid");
             }
         }
+
+        protected void OnRemoveAssemblyButton(){
+            RhinoApp.WriteLine("Removing Assembly");
+        }
+
+        protected void OnPrintAssemblyButton(){
+            var assembly_names = Assembly_Tools.GetAssemblyNames(CurrentDoc);
+            RhinoApp.WriteLine("Assemblies.SelectedIndex : " + Assemblies.SelectedIndex);
+            if(List_Utilities.InBounds(assembly_names, Assemblies.SelectedIndex)){
+                var named_assembly = Assembly_Tools.RetrieveAssemblyByName(CurrentDoc, assembly_names[Assemblies.SelectedIndex]);
+                if(named_assembly != null){
+                    named_assembly.WriteToConsole();
+                }else{
+                    RhinoApp.WriteLine("Assembly is null");
+                }
+            }else{
+                RhinoApp.WriteLine("The Selected Index is out of bounds");
+            }
+        }
+
+        protected void GetUserObjects(){
+            Assembly_Tools.PromptGeometrySelection(CurrentDoc);
+        }
+
+        protected void ResizeWindow(){
+            var preferred_size = Content.GetPreferredSize();
+            ClientSize = new Size((int)(preferred_size.Width + 20), (int)(preferred_size.Height + 20));
+        }
+
     }
 }
