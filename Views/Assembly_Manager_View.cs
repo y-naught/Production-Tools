@@ -2,6 +2,7 @@ using Eto.Drawing;
 using Eto.Forms;
 using Rhino;
 using Rhino.UI;
+using Rhino.DocObjects;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -144,7 +145,7 @@ namespace Production_Tools.Views
 
         protected void OnCreateAssemblyButton(){
             
-            string assembly_name = "assembly name";
+            string assembly_name = AssemblyNameTextBox.Text;
             
             // Validate Assembly Name
             if(Assembly_Tools.ValidateAssemblyName(CurrentDoc, assembly_name)){
@@ -160,6 +161,14 @@ namespace Production_Tools.Views
 
         protected void OnRemoveAssemblyButton(){
             RhinoApp.WriteLine("Removing Assembly");
+            var assembly_names = Assembly_Tools.GetAssemblyNames(CurrentDoc);
+            if(List_Utilities.InBounds(assembly_names, Assemblies.SelectedIndex)){
+                var assembly_name = assembly_names[Assemblies.SelectedIndex];
+                Assembly_Tools.RemoveAssemblyByName(CurrentDoc, assembly_name);
+                UpdateAssemblies();
+            }else{
+                RhinoApp.WriteLine("Selected Index Not in Bounds");
+            }
         }
 
         protected void OnPrintAssemblyButton(){
@@ -177,8 +186,9 @@ namespace Production_Tools.Views
             }
         }
 
-        protected void GetUserObjects(){
-            Assembly_Tools.PromptGeometrySelection(CurrentDoc);
+        protected ObjRef[] GetUserObjects(){
+            ObjRef[] objects = Assembly_Tools.PromptGeometrySelection();
+            return objects;
         }
 
         protected void ResizeWindow(){

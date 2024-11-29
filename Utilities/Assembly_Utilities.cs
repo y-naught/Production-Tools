@@ -144,20 +144,32 @@ namespace Production_Tools.Utilities
         }
 
         public static void RemoveAssembly(RhinoDoc doc, string assembly_id){
+            // --- TODO ---
+            // Also remove all the components that are associated with the assembly
             doc.Strings.Delete("Assembly", assembly_id);
         }
 
         public static void RemoveAssemblyByName(RhinoDoc doc, string _name){
             RetrieveAssemblyList(doc);
+            bool found_assembly = false;
+            Assembly assembly_to_remove = null;
             foreach(var assembly in Assembly_List){
                 if(assembly.Name == _name){
-                    Guid cur_id = assembly.Id;
-                    RemoveAssembly(doc, assembly.GetIdString());
-                    Assembly_List.Remove(assembly);
-                    Assembly_Guid_List.Remove(cur_id);
-                    SaveAssemblyGuids(doc);
+                    found_assembly = true;
+                    assembly_to_remove = assembly;
+                    break;
                 }
             }
+            if(found_assembly){
+                Guid cur_id = assembly_to_remove.Id;
+                RemoveAssembly(doc, assembly_to_remove.GetIdString());
+                Assembly_List.Remove(assembly_to_remove);
+                Assembly_Guid_List.Remove(cur_id);
+                SaveAssemblyGuids(doc);
+            }else{
+                RhinoApp.WriteLine("Did not find assembly");
+            }
+            
         }
     
     
@@ -331,7 +343,7 @@ namespace Production_Tools.Utilities
         #endregion
 
         // User Interface modifications
-        public static void PromptGeometrySelection(RhinoDoc doc){
+        public static ObjRef[] PromptGeometrySelection(){
             string prompt = "Please Select Objects You want to add to your assembly";
             var object_filter = ObjectType.Brep & ObjectType.Extrusion;
             ObjRef[] selected_objects;
@@ -341,13 +353,16 @@ namespace Production_Tools.Utilities
                     var object_ref = geometry.Geometry().ObjectType;
                     RhinoApp.WriteLine("ObjectType : " + object_ref.ToString());
                 }
+                return selected_objects;
             }else{
                 RhinoApp.WriteLine("Failed to retrieve Geometry from selection");
+                return null;
             }
         }
-
     
     }
+
+
 
     #region Class Definitions
     // Assembly class. Defined by primarily a list of components and a name.
@@ -379,7 +394,7 @@ namespace Production_Tools.Utilities
         
         public string Name { get; set; }
         public List<Guid> Components{ get; set; }
-        public Guid Id{ get; private set; }
+        public Guid Id{ get; set; }
 
         public string GetIdString(){
             return Id.ToString();
@@ -399,28 +414,37 @@ namespace Production_Tools.Utilities
         public Component(){
             Name = "";
             Quantity = 0;
-            Parts = new List<PartReference>();
+            Parts = new List<PartRef>();
             Id = Guid.NewGuid();
+            Groups = new List<Group>();
         }
 
-        public Component(string _name, List<PartReference> _parts, uint _quantity){
+        public Component(string _name, uint _quantity){
+            Name = _name;
+            Parts = new List<PartRef>();
+            Id = Guid.NewGuid();
+            Quantity = _quantity;
+        }
+
+        public Component(string _name, List<PartRef> _parts, uint _quantity){
             Name = _name;
             Parts = _parts;
             Id = Guid.NewGuid();
             Quantity = _quantity;
         }
 
-        public Component(string _name, List<PartReference> _parts, uint _quantity, Guid _id){
+        public Component(string _name, List<PartRef> _parts, uint _quantity, Guid _id){
             Name = _name;
             Parts = _parts;
             Id = _id;
             Quantity = _quantity;
         }
 
-        List<PartReference> Parts { get; set; }
+        List<PartRef> Parts { get; set; }
         public uint Quantity { get; set; }
         public string Name { get; set; }
-        public Guid Id{ get; private set; }
+        public Guid Id{ get; set; }
+        public List<Group> Groups{ get; set; }
 
         public string GetIdString(){
             return Id.ToString();
@@ -436,23 +460,23 @@ namespace Production_Tools.Utilities
             Name = "";
             Assemblies = new List<Guid>();
             Components = new List<Guid>();
-            RhinoObjects = new List<ObjRef> ();
+            RhObjects = new List<(ObjRef, ObjRef)> ();
             Id = Guid.NewGuid();
         }
 
-        public Part(string _name, List<Guid> _assemblies, List<Guid> _components, List<ObjRef> _rhino_rbjects){
+        public Part(string _name, List<Guid> _assemblies, List<Guid> _components, List<(ObjRef, ObjRef)> _rhino_rbjects){
             Name = _name;
             Assemblies = _assemblies;
             Components = _components;
-            RhinoObjects = _rhino_rbjects;
+            RhObjects = _rhino_rbjects;
         }
 
 
         public string Name { get; set; }
         public List<Guid> Assemblies{ get; set; }
         public List<Guid> Components{ get; set; }
-        public List<ObjRef> RhinoObjects { get; set; }
-        public Guid Id{ get; private set; }
+        public List<(ObjRef Og, ObjRef New)> RhObjects { get; set; }
+        public Guid Id{ get; set; }
 
         public string GetIdString(){
             return Id.ToString();
@@ -464,18 +488,18 @@ namespace Production_Tools.Utilities
     // For use while keeping track of parts in components. 
     // Has a record of the part guid it is associated with. 
     // Contains quantity within a component.
-    public class PartReference{
+    public class PartRef{
 
-        public PartReference(){
+        public PartRef(){
             PartId = Guid.Empty;
             Name = "";
             Quantity = 0;
         }
 
-        public PartReference(string _name, Guid _part_id, uint _quantity){
-            PartId = Guid.Empty;
-            Name = "";
-            Quantity = 0;
+        public PartRef(string _name, Guid _part_id, uint _quantity){
+            PartId = _part_id;
+            Name = _name;
+            Quantity = _quantity;
         }
 
 
