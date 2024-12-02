@@ -251,6 +251,17 @@ namespace Production_Tools.Utilities
             SaveComponentGuids(doc);
         }
 
+        public static void AddComponents(RhinoDoc doc, List<Component> _component_list){
+            RetrieveComponentList(doc);
+            RetrieveComponentGuids(doc);
+            foreach(var component in _component_list){
+                Component_List.Add(component);
+                Component_Guid_List.Add(component.Id);
+            }
+            SaveComponentListToDataStore(doc);
+            SaveComponentGuids(doc);
+        }
+
         public static void RemoveComponent(RhinoDoc doc, Guid component_id){
             RetrieveComponentList(doc);
             RetrieveComponentGuids(doc);
@@ -329,6 +340,18 @@ namespace Production_Tools.Utilities
             SavePartGuids(doc);
         }
 
+        public static void AddParts(RhinoDoc doc, List<Part> _parts){
+            RetrievePartList(doc);
+            RetrievePartGuid(doc);
+            Console.WriteLine("Parts_List.Count : " + Part_List.Count.ToString());
+            foreach(var part in _parts){
+                Part_List.Add(part);
+                Part_Guid_List.Add(part.Id);
+            }
+            SavePartListToDataStore(doc);
+            SavePartGuids(doc);
+        }
+
         public static void RemovePart(RhinoDoc doc, Guid part_id){
             RetrievePartList(doc);
             RetrievePartGuid(doc);
@@ -359,7 +382,6 @@ namespace Production_Tools.Utilities
                 return null;
             }
         }
-    
     }
 
 
@@ -416,7 +438,7 @@ namespace Production_Tools.Utilities
             Quantity = 0;
             Parts = new List<PartRef>();
             Id = Guid.NewGuid();
-            Groups = new List<Group>();
+            Groups = new List<string>();
         }
 
         public Component(string _name, uint _quantity){
@@ -424,6 +446,7 @@ namespace Production_Tools.Utilities
             Parts = new List<PartRef>();
             Id = Guid.NewGuid();
             Quantity = _quantity;
+            Groups = new List<string>();
         }
 
         public Component(string _name, List<PartRef> _parts, uint _quantity){
@@ -431,6 +454,7 @@ namespace Production_Tools.Utilities
             Parts = _parts;
             Id = Guid.NewGuid();
             Quantity = _quantity;
+            Groups = new List<string>();
         }
 
         public Component(string _name, List<PartRef> _parts, uint _quantity, Guid _id){
@@ -438,13 +462,14 @@ namespace Production_Tools.Utilities
             Parts = _parts;
             Id = _id;
             Quantity = _quantity;
+            Groups = new List<string>();
         }
 
-        List<PartRef> Parts { get; set; }
+        public List<PartRef> Parts { get; set; }
         public uint Quantity { get; set; }
         public string Name { get; set; }
         public Guid Id{ get; set; }
-        public List<Group> Groups{ get; set; }
+        public List<string> Groups{ get; set; }
 
         public string GetIdString(){
             return Id.ToString();
@@ -460,22 +485,39 @@ namespace Production_Tools.Utilities
             Name = "";
             Assemblies = new List<Guid>();
             Components = new List<Guid>();
-            RhObjects = new List<(ObjRef, ObjRef)> ();
+            RhObjects = new List<(Guid, Guid)> ();
             Id = Guid.NewGuid();
         }
 
-        public Part(string _name, List<Guid> _assemblies, List<Guid> _components, List<(ObjRef, ObjRef)> _rhino_rbjects){
+        public Part(string _name, List<(Guid, Guid)> _rhino_objects){
+            Name = _name;
+            Assemblies = new List<Guid>();
+            Components = new List<Guid>();
+            RhObjects = _rhino_objects;
+            Id = Guid.NewGuid();
+        }
+
+        public Part(string _name, List<Guid> _assemblies, List<Guid> _components, List<(Guid, Guid)> _rhino_objects){
             Name = _name;
             Assemblies = _assemblies;
             Components = _components;
-            RhObjects = _rhino_rbjects;
+            RhObjects = _rhino_objects;
+            Id = Guid.NewGuid();
+        }
+
+        public Part(string _name, List<Guid> _assemblies, List<Guid> _components, List<(Guid, Guid)> _rhino_objects, Guid _id){
+            Name = _name;
+            Assemblies = _assemblies;
+            Components = _components;
+            RhObjects = _rhino_objects;
+            Id = _id;
         }
 
 
         public string Name { get; set; }
         public List<Guid> Assemblies{ get; set; }
         public List<Guid> Components{ get; set; }
-        public List<(ObjRef Og, ObjRef New)> RhObjects { get; set; }
+        public List<(Guid Og, Guid New)> RhObjects { get; set; }
         public Guid Id{ get; set; }
 
         public string GetIdString(){
@@ -487,25 +529,34 @@ namespace Production_Tools.Utilities
 
     // For use while keeping track of parts in components. 
     // Has a record of the part guid it is associated with. 
-    // Contains quantity within a component.
+    // The idea was that each RhinoObject that has been sorted will have a
+    // partref object associated with it and we would count those 
+    // objects when we want to figure out how many parts with a certain ID
+    // belong to a component. 
     public class PartRef{
 
         public PartRef(){
             PartId = Guid.Empty;
             Name = "";
-            Quantity = 0;
+            Guid RhObject = Guid.Empty;
         }
 
-        public PartRef(string _name, Guid _part_id, uint _quantity){
+        public PartRef(string _name, Guid _part_id, Guid new_obj){
             PartId = _part_id;
             Name = _name;
-            Quantity = _quantity;
+            Guid RhObject = new_obj;
+        }
+
+        public PartRef(Part part, Guid new_obj){
+            PartId = part.Id;
+            Name = part.Name;
+            Guid RhObject = new_obj;
         }
 
 
         public Guid PartId{ get; set; }
         public string Name{ get; set; }
-        public uint Quantity{ get; set; }
+        public Guid RhObject{ get; set; }
 
         public string GetIdString(){
             return PartId.ToString();

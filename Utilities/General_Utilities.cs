@@ -55,12 +55,12 @@ namespace Production_Tools.Utilities
         public static JsonSerializerOptions JsonOptions = new JsonSerializerOptions{ IncludeFields = true};
 
         #region Document User Data Key Values
-        public static string ComponentGuidKey = "Component Guids";
-        public static string ComponentSection = "Component";
         public static string AssemblyGuidKey = "Assembly Guids";
         public static string AssemblySection = "Assembly";
-        public static string PartGuidKey = "Assembly Guids";
-        public static string PartSection = "Assembly";
+        public static string ComponentGuidKey = "Component Guids";
+        public static string ComponentSection = "Component";
+        public static string PartGuidKey = "Part Guids";
+        public static string PartSection = "Part";
 
         #endregion
     }

@@ -42,6 +42,20 @@ namespace Production_Tools.Views
             AssemblyNameTextBox = new TextBox();
             AssemblyNameTextBox.Text = "";
 
+            ComponentPrefixLabel = new Label();
+            ComponentPrefixLabel.Text = "Component Prefix : ";
+
+            ComponentPrefixTextBox = new TextBox();
+            ComponentPrefixTextBox.Text = "";
+
+            PartPrefixLabel = new Label();
+            PartPrefixLabel.Text = "Part Prefix : ";
+
+            PartPrefixTextBox = new TextBox();
+            PartPrefixTextBox.Text = "";
+
+
+
             // List Boxes for Assemblies, Components, and parts
             Assemblies = new ListBox();
             Assemblies.DataStore = Assembly_Tools.GetAssemblyNames(CurrentDoc);
@@ -84,6 +98,20 @@ namespace Production_Tools.Views
                 Rows = { new TableRow(AssemblyNameLabel, AssemblyNameTextBox) }
             };
 
+            var component_prefix_textbox_layout = new TableLayout
+            {
+                Padding = new Padding(5, 10, 5, 5),
+                Spacing = new Size(5, 5),
+                Rows = { new TableRow(ComponentPrefixLabel, ComponentPrefixTextBox) }
+            };
+
+            var part_prefix_textbox_layout = new TableLayout
+            {
+                Padding = new Padding(5, 10, 5, 5),
+                Spacing = new Size(5, 5),
+                Rows = { new TableRow(PartPrefixLabel, PartPrefixTextBox) }
+            };
+
             var print_assembly_layout = new TableLayout
             {
                 Padding = new Padding(5, 10, 5, 5),
@@ -99,6 +127,8 @@ namespace Production_Tools.Views
                 {
                     new DynamicRow(assembly_listbox_layout),
                     new DynamicRow(assembly_textbox_layout),
+                    new DynamicRow(component_prefix_textbox_layout),
+                    new DynamicRow(part_prefix_textbox_layout),
                     new DynamicRow(button_layout),
                     new DynamicRow(print_assembly_layout),
                     new DynamicRow(defaults_layout)
@@ -113,6 +143,10 @@ namespace Production_Tools.Views
         RhinoDoc CurrentDoc {get; set;}
         Label AssemblyNameLabel {get; set;}
         TextBox AssemblyNameTextBox {get; set;}
+        Label ComponentPrefixLabel {get; set;}
+        TextBox ComponentPrefixTextBox {get; set;}
+        Label PartPrefixLabel {get; set;}
+        TextBox PartPrefixTextBox {get; set;}
         
         protected void UpdateAssemblies(){
             // Retrieve and update the listbox of assemblies here
@@ -150,9 +184,14 @@ namespace Production_Tools.Views
             // Validate Assembly Name
             if(Assembly_Tools.ValidateAssemblyName(CurrentDoc, assembly_name)){
                 RhinoApp.WriteLine("Creating Assembly");
-                // GetUserObjects();
+                var user_objects = GetUserObjects();
                 Assembly new_assembly = new Assembly(assembly_name);
+                (var parts, var components) = Categorize_Parts.CategorizeParts(CurrentDoc, user_objects, ComponentPrefixTextBox.Text, PartPrefixTextBox.Text);
+                
+                Assembly_Tools.AddComponents(CurrentDoc, components);
+                Assembly_Tools.AddParts(CurrentDoc, parts);
                 Assembly_Tools.AddAssembly(CurrentDoc, new_assembly);
+                CurrentDoc.Views.Redraw();
                 UpdateAssemblies();
             }else{
                 RhinoApp.WriteLine("Name invalid");

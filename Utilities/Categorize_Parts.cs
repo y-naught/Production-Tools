@@ -2,8 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Net.NetworkInformation;
 using Rhino;
 using Rhino.DocObjects;
 using Rhino.Geometry;
@@ -19,14 +17,13 @@ namespace Production_Tools.Utilities
         public static double bound_std_dev_tolerance = 0.001;
         
         // Parent function that is called to run whole operation. 
-        public static void CategorizeParts(ObjRef[] ref_objects){
+        public static (List<Part> parts, List<Component> components) CategorizeParts(RhinoDoc doc, ObjRef[] ref_objects, string component_prefix, string part_prefix){
             var group_indices = GetPartGroups(ref_objects);
             List<Temp_Part> temp_parts = ConstructTempPartList(ref_objects);
             bool[,] comparison_matrix = GetComparisonMatrix(temp_parts);
             var sorted_parts = SortParts(temp_parts, comparison_matrix);
-
-            // var components = CreateComponents(group_indices);
-            return;
+            var PartsComponents = CreatePartComponentObjects(doc, sorted_parts, group_indices, component_prefix, part_prefix);
+            return(PartsComponents.parts, PartsComponents.components);
         }
 
         public static List<int> GetPartGroups(ObjRef[] ref_objects){
@@ -39,7 +36,11 @@ namespace Production_Tools.Utilities
             }
             return part_groups;
         }
-
+        /// <summary>
+        /// Gets a single group from a part group
+        /// </summary>
+        /// <param name="part_ref">Rhino Object Reference for the part you want to extract the group from</param>
+        /// <returns></returns>
         public static int GetPartGroup(ObjRef part_ref){
             var group_index_list = part_ref.Object().GetGroupList();
             if(group_index_list == null){
@@ -52,6 +53,11 @@ namespace Production_Tools.Utilities
             return -1;
         }
 
+        /// <summary>
+        /// Generates a comparison matrix for a list of parts in the Temp_Part data structure
+        /// </summary>
+        /// <param name="temp_parts"></param>
+        /// <returns>2D matrix representing an matrix of equivalence of parts</returns>
         public static bool[,] GetComparisonMatrix(List<Temp_Part> temp_parts){
             bool[,] comparison_array = new bool[temp_parts.Count, temp_parts.Count];
             for(int i = 0; i < comparison_array.GetLength(0); i++){
@@ -143,8 +149,8 @@ namespace Production_Tools.Utilities
             return sorted_list;
         }
 
-        public static void CreatePartComponentObjects(RhinoDoc doc, List<List<Temp_Part>> equivalent_object_sets, List<int> group_indices, string component_prefix, string part_prefix){
-            List<Component> Cur_Components = new List<Component>();
+        public static (List<Part> parts, List<Component> components) CreatePartComponentObjects(RhinoDoc doc, List<List<Temp_Part>> equivalent_object_sets, List<int> group_indices, string component_prefix, string part_prefix){
+            
             Dictionary<int, int[]> group_counts = new Dictionary<int, int[]>();
             // Initialize the dictionary with all possible group indices
             foreach(int indx in group_indices){
@@ -165,9 +171,11 @@ namespace Production_Tools.Utilities
             // Make these context related based on how the parts relate to eachother
             // as the current method would consider components with the same parts with different arrangements
             // to be the same component. 
+            // Can we do something similar in listing the distances to the centers, sorting those lists and comparing them
+            // like we did to categorize parts?
             List<List<int>> equivalent_groups = new List<List<int>>();
             List<int> group_counted = new List<int>();
-
+            // for each group index
             for(int i = 0; i < group_indices.Count; i++){
                 if(group_counted.Contains(group_indices[i])){ continue; }
 
@@ -189,17 +197,97 @@ namespace Production_Tools.Utilities
             var component_pairs = CreateComponentObjects(equivalent_groups, component_prefix);
 
             List<Part> parts = new List<Part>();
+            int part_leading_zeros = GetLeadingZeros(equivalent_object_sets);
+            List<(Group new_group, int old_group_index)> group_pairs = new List<(Group new_group, int old_group_index)>();
 
             foreach(var obj_set in equivalent_object_sets){
-                List<(ObjRef Og, ObjRef New)> RhObjects = new List<(ObjRef Og, ObjRef New)>();
+                int part_number = 1;
+                List<(Guid Og, Guid New)> RhObjects = new List<(Guid Og, Guid New)>();
                 
                 foreach(var obj in obj_set){
-                    ObjRef new_object = new ObjRef(doc.Objects.FindId(doc.Objects.Duplicate(obj.RhObject)));
-                    (ObjRef Og, ObjRef New) paired_objects = (obj.RhObject, new_object);
+                    var copied_geometry = obj.RhObject.Object().Geometry.Duplicate();
+                    copied_geometry.Transform(Transform.Translation(new Vector3d(100,100,0)));
+                    var new_object_id = doc.Objects.Add(copied_geometry);
+                    var new_obj = doc.Objects.FindId(new_object_id);
+                    ObjRef new_object = new ObjRef(new_obj);
+
+                    var old_group = obj.Group_Index;
+                    
+                    var searched_group = CheckGroupList(group_pairs, old_group);
+                    if(searched_group.found){
+                        int new_group_index = searched_group.found_group.Index;
+                        doc.Groups.AddToGroup(new_group_index, new_object_id);
+                    }else{
+                        int new_group_index = doc.Groups.Add();
+                        doc.Groups.AddToGroup(new_group_index, new_object_id);
+                        group_pairs.Add((doc.Groups.FindIndex(new_group_index), old_group));
+                    }
+                    
+                    
+                    (Guid Og, Guid New) paired_objects = (obj.RhObject.ObjectId, new_object.ObjectId);
                     RhObjects.Add(paired_objects);
+
+                }
+
+                // Create part and add to list
+                string cur_part_prefix = GenerateNumberedName(part_prefix, part_number, part_leading_zeros);
+                Part new_part = new Part(cur_part_prefix, RhObjects);
+                parts.Add(new_part);
+            }
+
+            // for each part
+            foreach(var part in parts){
+                // for every piece of geometry associated with a part object
+                foreach(var object_pair in part.RhObjects){
+                    // get the original group
+                    var groups = doc.Objects.FindId(object_pair.Og).Attributes.GetGroupList();
+                    // if they have a group
+                    if(groups.Length > 0){
+                        // find the new group it belongs to
+                        var old_group = groups[0];
+                        var searched_group = CheckGroupList(group_pairs, old_group);
+                        if(searched_group.found){
+                            // get the component that is associated with the old group
+                            var new_component = GetComponentFromGroupIndex(component_pairs, old_group);
+                            // add a new part ref object to the component and add a new Group to the component
+                            new_component.Parts.Add(new PartRef(part, object_pair.New));
+                            if(!new_component.Groups.Contains(searched_group.found_group.Id.ToString())){
+                                new_component.Groups.Add(searched_group.found_group.Id.ToString());
+                            }
+                        }
+                    }
                 }
             }
+
+            // finally reduce the component / old group pairs down to a list of just components
+            List<Component> reduced_components = new List<Component>();
+            foreach(var component in component_pairs){
+                reduced_components.Add(component.component);
+            }
+
+            return (parts, reduced_components);
         }
+
+        
+
+        public static (bool found, Group found_group) CheckGroupList(List<(Group new_group, int old_group_index)> group_pairs, int search_index){
+            for(int i = 0;i < group_pairs.Count; i++){
+                if(group_pairs[i].old_group_index == search_index){
+                    return (true, group_pairs[i].new_group);
+                }
+            }
+            return (false, null);
+        }
+
+        public static Component GetComponentFromGroupIndex(List<(Component component, List<int> indicies)> component_pairs, int search_index){
+            foreach(var pair in component_pairs){
+                if(pair.indicies.Contains(search_index)){
+                    return pair.component;
+                }
+            }
+            return null;
+        }
+
 
         public static List<(Component component, List<int> indicies)> CreateComponentObjects(List<List<int>> equivalent_group_sets, string component_prefix){
             equivalent_group_sets.Sort((list1, list2) => list1.Count.CompareTo(list2.Count));
@@ -256,6 +344,11 @@ namespace Production_Tools.Utilities
             }
             return Math.Sqrt(sum_dev / array.Length);
         }
+
+        public static int GetLeadingZeros<T>(List<T> list){
+            return (int)Math.Ceiling(Math.Log10(list.Count));
+        }
+
         #endregion
     }
 
@@ -274,11 +367,11 @@ namespace Production_Tools.Utilities
             if(Sorted_Edge_Lengths.Length != other_part.Sorted_Edge_Lengths.Length){
                 return false;
             }
-            if(Math.Abs(Mid_Distance_Std_Dev - other_part.Mid_Distance_Std_Dev) >= Categorize_Parts.bound_std_dev_tolerance){
-                RhinoApp.WriteLine("Failed_Std_Dev_Comparison : ");
-            }else{
-                RhinoApp.WriteLine("Passed_Std_Dev_Comparison : ");
-            }
+            // if(Math.Abs(Mid_Distance_Std_Dev - other_part.Mid_Distance_Std_Dev) >= Categorize_Parts.bound_std_dev_tolerance){
+            //     RhinoApp.WriteLine("Failed_Std_Dev_Comparison : ");
+            // }else{
+            //     RhinoApp.WriteLine("Passed_Std_Dev_Comparison : ");
+            // }
             for(int i = 0; i < Sorted_Edge_Lengths.Length; i++){
                 if(Math.Abs(Sorted_Edge_Lengths[i] - other_part.Sorted_Edge_Lengths[i]) >= Categorize_Parts.bound_curve_dim_tolerance){
                     return false;
