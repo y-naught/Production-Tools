@@ -1,10 +1,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Text.Json;
 using Rhino;
 using Rhino.Commands;
 using Rhino.DocObjects;
+using Rhino.NodeInCode;
 
 namespace Production_Tools.Utilities
 {
@@ -145,7 +147,7 @@ namespace Production_Tools.Utilities
 
         public static void RemoveAssembly(RhinoDoc doc, string assembly_id){
             // --- TODO ---
-            // Also remove all the components that are associated with the assembly
+            // Also remove all the components and parts that are associated with the assembly
             doc.Strings.Delete("Assembly", assembly_id);
         }
 
@@ -273,6 +275,29 @@ namespace Production_Tools.Utilities
             SaveComponentGuids(doc);
         }
 
+        public static List<Guid> GetComponentIds(List<Component> components){
+            List<Guid> components_guid_list = new List<Guid>();
+            foreach(var component in components){
+                components_guid_list.Add(component.Id);
+            }
+            return components_guid_list;
+        }
+
+        public static List<Part> GetPartsFromComponent(RhinoDoc doc, Component component){
+            List<Guid> part_ids = new List<Guid>();
+            List<Part> parts = new List<Part>();
+            foreach(var part in component.Parts){
+                if(!part_ids.Contains(part.PartId)){
+                    part_ids.Add(part.PartId);
+                }
+            }
+            foreach(Guid part in part_ids){
+                Part cur_part = RetrievePart(doc, part);
+                parts.Add(cur_part);
+            }
+            return parts;
+        }
+
         #endregion
 
 
@@ -309,7 +334,7 @@ namespace Production_Tools.Utilities
 
         public static Part RetrievePart(RhinoDoc doc, Guid part_id){
             string guid_string = part_id.ToString();
-            Part retrieved_part = Storage_Utilities.RetrieveFromDocData<Part>(doc, Storage_Utilities.ComponentSection, guid_string);
+            Part retrieved_part = Storage_Utilities.RetrieveFromDocData<Part>(doc, Storage_Utilities.PartSection, guid_string);
             if(retrieved_part == null){
                 return null;
             }else{
@@ -382,8 +407,46 @@ namespace Production_Tools.Utilities
                 return null;
             }
         }
-    }
 
+        public static void MoveNewAssemblyToLayers(RhinoDoc doc, string assembly_name, List<Component> new_components){
+            // Make sure the assembly layer exists
+            string assembly_layer_path = Layer_Tools.ConstructAssemblyLayerPath(assembly_name);
+            Guid assembly_layer_id = Layer_Tools.CreateLayer(doc, assembly_layer_path);
+
+            // for each component
+            foreach(var component in new_components){
+                // make a new layer for the component to live on
+                string component_layer_path = Layer_Tools.ConstructComponentLayerPath(assembly_name, component.Name);
+                Guid component_layer_id = Layer_Tools.CreateLayer(doc, component_layer_path);
+
+                // for each part
+                foreach(var part in component.Parts){
+                    // get part by id reference
+                    Guid object_guid = part.RhObject;
+                    Guid part_guid = part.PartId;
+                    RhinoObject part_object = doc.Objects.FindId(object_guid);
+                    Part part_def = RetrievePart(doc, part_guid);
+
+                    // create part layer under this component layer
+                    var part_layer_path = Layer_Tools.ConstructPartLayerPath(assembly_name, component.Name, part_def.Name);
+                    Guid part_layer_guid = Layer_Tools.CreateLayer(doc, part_layer_path);
+                    Layer part_layer = doc.Layers.FindId(part_layer_guid);
+                    part_layer.Color = part_def.LayerColor.ToSystemColor();
+                    Console.WriteLine("Layer " + part_def.Name + " Color : " + part_def.LayerColor.ToString());
+                    
+
+                    // move the part to the new layer
+                    var attributes = part_object.Attributes;
+                    attributes.LayerIndex = part_layer.Index;
+                    doc.Objects.ModifyAttributes(part_object, attributes, true);
+                }
+
+            }
+
+            doc.Views.Redraw();
+        }
+
+    }
 
 
     #region Class Definitions
@@ -465,6 +528,14 @@ namespace Production_Tools.Utilities
             Groups = new List<string>();
         }
 
+        public Component(string _name, List<PartRef> _parts, uint _quantity, Guid _id, List<string> _groups){
+            Name = _name;
+            Parts = _parts;
+            Id = _id;
+            Quantity = _quantity;
+            Groups = _groups;
+        }
+
         public List<PartRef> Parts { get; set; }
         public uint Quantity { get; set; }
         public string Name { get; set; }
@@ -487,6 +558,7 @@ namespace Production_Tools.Utilities
             Components = new List<Guid>();
             RhObjects = new List<(Guid, Guid)> ();
             Id = Guid.NewGuid();
+            LayerColor = new PTColor();
         }
 
         public Part(string _name, List<(Guid, Guid)> _rhino_objects){
@@ -495,6 +567,7 @@ namespace Production_Tools.Utilities
             Components = new List<Guid>();
             RhObjects = _rhino_objects;
             Id = Guid.NewGuid();
+            LayerColor = new PTColor();
         }
 
         public Part(string _name, List<Guid> _assemblies, List<Guid> _components, List<(Guid, Guid)> _rhino_objects){
@@ -503,6 +576,7 @@ namespace Production_Tools.Utilities
             Components = _components;
             RhObjects = _rhino_objects;
             Id = Guid.NewGuid();
+            LayerColor = new PTColor();
         }
 
         public Part(string _name, List<Guid> _assemblies, List<Guid> _components, List<(Guid, Guid)> _rhino_objects, Guid _id){
@@ -511,7 +585,19 @@ namespace Production_Tools.Utilities
             Components = _components;
             RhObjects = _rhino_objects;
             Id = _id;
+            LayerColor = new PTColor();
         }
+
+        public Part(string _name, List<Guid> _assemblies, List<Guid> _components, List<(Guid, Guid)> _rhino_objects, Guid _id, PTColor _color){
+            Name = _name;
+            Assemblies = _assemblies;
+            Components = _components;
+            RhObjects = _rhino_objects;
+            Id = _id;
+            LayerColor = _color;
+        }
+
+
 
 
         public string Name { get; set; }
@@ -519,6 +605,7 @@ namespace Production_Tools.Utilities
         public List<Guid> Components{ get; set; }
         public List<(Guid Og, Guid New)> RhObjects { get; set; }
         public Guid Id{ get; set; }
+        public PTColor LayerColor{ get; set; }
 
         public string GetIdString(){
             return Id.ToString();
@@ -538,19 +625,19 @@ namespace Production_Tools.Utilities
         public PartRef(){
             PartId = Guid.Empty;
             Name = "";
-            Guid RhObject = Guid.Empty;
+            RhObject = Guid.Empty;
         }
 
         public PartRef(string _name, Guid _part_id, Guid new_obj){
             PartId = _part_id;
             Name = _name;
-            Guid RhObject = new_obj;
+            RhObject = new_obj;
         }
 
         public PartRef(Part part, Guid new_obj){
             PartId = part.Id;
             Name = part.Name;
-            Guid RhObject = new_obj;
+            RhObject = new_obj;
         }
 
 

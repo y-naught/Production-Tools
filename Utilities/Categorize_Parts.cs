@@ -36,6 +36,8 @@ namespace Production_Tools.Utilities
             }
             return part_groups;
         }
+
+        
         /// <summary>
         /// Gets a single group from a part group
         /// </summary>
@@ -200,8 +202,9 @@ namespace Production_Tools.Utilities
             int part_leading_zeros = GetLeadingZeros(equivalent_object_sets);
             List<(Group new_group, int old_group_index)> group_pairs = new List<(Group new_group, int old_group_index)>();
 
+            int part_number = 1;
             foreach(var obj_set in equivalent_object_sets){
-                int part_number = 1;
+                
                 List<(Guid Og, Guid New)> RhObjects = new List<(Guid Og, Guid New)>();
                 
                 foreach(var obj in obj_set){
@@ -233,8 +236,10 @@ namespace Production_Tools.Utilities
                 string cur_part_prefix = GenerateNumberedName(part_prefix, part_number, part_leading_zeros);
                 Part new_part = new Part(cur_part_prefix, RhObjects);
                 parts.Add(new_part);
+                part_number++;
             }
 
+            int counter = 0;
             // for each part
             foreach(var part in parts){
                 // for every piece of geometry associated with a part object
@@ -246,17 +251,23 @@ namespace Production_Tools.Utilities
                         // find the new group it belongs to
                         var old_group = groups[0];
                         var searched_group = CheckGroupList(group_pairs, old_group);
+                        
                         if(searched_group.found){
                             // get the component that is associated with the old group
                             var new_component = GetComponentFromGroupIndex(component_pairs, old_group);
                             // add a new part ref object to the component and add a new Group to the component
                             new_component.Parts.Add(new PartRef(part, object_pair.New));
+                            Console.WriteLine("object_pair.New : " + object_pair.New.ToString());
+                            RhinoApp.WriteLine("object_pair.New : " + object_pair.New.ToString());
                             if(!new_component.Groups.Contains(searched_group.found_group.Id.ToString())){
                                 new_component.Groups.Add(searched_group.found_group.Id.ToString());
                             }
                         }
                     }
                 }
+
+                part.LayerColor = Layer_Tools.GetNextColor(counter);
+                counter++;
             }
 
             // finally reduce the component / old group pairs down to a list of just components
@@ -264,7 +275,6 @@ namespace Production_Tools.Utilities
             foreach(var component in component_pairs){
                 reduced_components.Add(component.component);
             }
-
             return (parts, reduced_components);
         }
 

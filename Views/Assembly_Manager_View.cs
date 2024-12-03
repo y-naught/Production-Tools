@@ -5,7 +5,6 @@ using Rhino.UI;
 using Rhino.DocObjects;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using Production_Tools.Utilities;
 
 namespace Production_Tools.Views
@@ -20,6 +19,8 @@ namespace Production_Tools.Views
             Title = GetType().Name;
             WindowStyle = WindowStyle.Default;
             CurrentDoc = doc;
+
+            Layer_Tools.InitializeAssemblyLayer(CurrentDoc);
 
             var CreateAssemblyButton = new Button { Text = "Create Assembly" };
             CreateAssemblyButton.Click += (sender, e) => OnCreateAssemblyButton();
@@ -59,14 +60,16 @@ namespace Production_Tools.Views
             // List Boxes for Assemblies, Components, and parts
             Assemblies = new ListBox();
             Assemblies.DataStore = Assembly_Tools.GetAssemblyNames(CurrentDoc);
-            Assemblies.SelectedIndex = 0;
+            Assemblies.SelectedIndexChanged += (sender, e) => UpdateComponents();
+            // Assemblies.SelectedIndex = 0;
 
             Components = new ListBox();
-            // Components.DataStore = null;
+            Components.SelectedIndexChanged += (sender, e) => UpdateParts();
+            // Components.DataStore = Assembly_Tools.GetComponentNames(CurrentDoc);
             // Components.SelectedIndex = 0;
 
             Parts = new ListBox();
-            // Parts.DataStore = null;
+            // Parts.DataStore = Assembly_Tools.GetPartNames(CurrentDoc);;
             // Parts.SelectedIndex = 0;
 
 
@@ -86,9 +89,10 @@ namespace Production_Tools.Views
 
             var assembly_listbox_layout = new TableLayout
             {
+                Height = 100,
                 Padding = new Padding(5, 10, 5, 5),
-                Spacing = new Size(15,10),
-                Rows = {new TableRow(Assemblies)}
+                Spacing = new Size(5,5),
+                Rows = {new TableRow(Assemblies, Components, Parts)}
             };
             
             var assembly_textbox_layout = new TableLayout
@@ -134,6 +138,8 @@ namespace Production_Tools.Views
                     new DynamicRow(defaults_layout)
                 }
             };
+
+            ResizeWindow();
         }
 
 
@@ -156,12 +162,47 @@ namespace Production_Tools.Views
         }
 
         protected void UpdateComponents(){
-            // Retrieve and update the listbox of components here
+            var assembly_names = Assembly_Tools.GetAssemblyNames(CurrentDoc);
+            if(Assemblies.SelectedIndex >= 0 && Assemblies.SelectedIndex < assembly_names.Count){
+                
+                List<string> component_names = new List<string>();
+                var selected_assembly = Assembly_Tools.RetrieveAssemblyByName(CurrentDoc, assembly_names[Assemblies.SelectedIndex]);
+                foreach(var component_id in selected_assembly.Components){
+                    var component = Assembly_Tools.RetrieveComponent(CurrentDoc, component_id);
+                    component_names.Add(component.Name);
+                }
 
-        }   
+                Components.DataStore = component_names;
+                if(component_names.Count > 0){
+                    Components.SelectedIndex = 0;
+                }
+            }
+        }
 
         protected void UpdateParts(){
             // Retrieve and update the listbox of parts here
+            var assembly_names = Assembly_Tools.GetAssemblyNames(CurrentDoc);
+            if(Assemblies.SelectedIndex >= 0 && Assemblies.SelectedIndex < assembly_names.Count){
+                List<Component> components = new List<Component>();
+                var selected_assembly = Assembly_Tools.RetrieveAssemblyByName(CurrentDoc, assembly_names[Assemblies.SelectedIndex]);
+                foreach(var component_id in selected_assembly.Components){
+                    var component = Assembly_Tools.RetrieveComponent(CurrentDoc, component_id);
+                    components.Add(component);
+                }
+
+                if(Components.SelectedIndex >= 0 && Components.SelectedIndex < components.Count){
+                    var selected_component = components[Components.SelectedIndex];
+                    List<Part> part_list = Assembly_Tools.GetPartsFromComponent(CurrentDoc, selected_component);
+                    List<string> part_names = new List<string>();
+                    foreach(var part in part_list){
+                        part_names.Add(part.Name);
+                    }
+                    Parts.DataStore = part_names;
+                    if(part_names.Count > 0){
+                        Parts.SelectedIndex = 0;
+                    }
+                }
+            }
         }
 
 
@@ -171,7 +212,7 @@ namespace Production_Tools.Views
             this.RestorePosition();
         }
 
-        protected override void OnClosing(CancelEventArgs e)
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
             this.SavePosition();
             base.OnClosing(e);
@@ -187,11 +228,13 @@ namespace Production_Tools.Views
                 var user_objects = GetUserObjects();
                 Assembly new_assembly = new Assembly(assembly_name);
                 (var parts, var components) = Categorize_Parts.CategorizeParts(CurrentDoc, user_objects, ComponentPrefixTextBox.Text, PartPrefixTextBox.Text);
-                
+                new_assembly.Components = Assembly_Tools.GetComponentIds(components);
                 Assembly_Tools.AddComponents(CurrentDoc, components);
                 Assembly_Tools.AddParts(CurrentDoc, parts);
                 Assembly_Tools.AddAssembly(CurrentDoc, new_assembly);
                 CurrentDoc.Views.Redraw();
+
+                Assembly_Tools.MoveNewAssemblyToLayers(CurrentDoc, assembly_name, components);
                 UpdateAssemblies();
             }else{
                 RhinoApp.WriteLine("Name invalid");
@@ -226,14 +269,18 @@ namespace Production_Tools.Views
         }
 
         protected ObjRef[] GetUserObjects(){
+            Visible = false;
             ObjRef[] objects = Assembly_Tools.PromptGeometrySelection();
+            Visible = true;
             return objects;
         }
 
         protected void ResizeWindow(){
             var preferred_size = Content.GetPreferredSize();
             ClientSize = new Size((int)(preferred_size.Width + 20), (int)(preferred_size.Height + 20));
+            Assemblies.Width = ClientSize.Width / 3 - 10;
+            Components.Width = ClientSize.Width / 3 - 10;
+            Parts.Width = ClientSize.Width / 3 - 10;
         }
-
     }
 }
