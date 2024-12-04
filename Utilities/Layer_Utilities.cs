@@ -18,6 +18,18 @@ namespace Production_Tools.Utilities
             }
         }
 
+        public static bool RemoveAssemblyLayer(RhinoDoc doc, string _assembly_name){
+            var full_layer_path = ConstructAssemblyLayerPath(_assembly_name);
+            var layer_index = doc.Layers.FindByFullPath(full_layer_path, -1);
+            if(layer_index != -1){
+                var success = doc.Layers.Purge(layer_index, true);
+                return success;
+            }else{
+                RhinoApp.WriteLine("Couldn't find layer : " + full_layer_path + " in the layer table");
+                return false;
+            }
+        }
+
         public static string ConstructLayoutLayerPath(string _layout_name){
             var full_layer_path = LayoutString + "::" + _layout_name;
             return full_layer_path;

@@ -22,6 +22,7 @@ namespace Production_Tools.Views
 
             Layer_Tools.InitializeAssemblyLayer(CurrentDoc);
 
+
             var CreateAssemblyButton = new Button { Text = "Create Assembly" };
             CreateAssemblyButton.Click += (sender, e) => OnCreateAssemblyButton();
 
@@ -31,6 +32,12 @@ namespace Production_Tools.Views
             var PrintAssemblyButton = new Button { Text = "Print Assembly" };
             PrintAssemblyButton.Click += (sender, e) => OnPrintAssemblyButton();
 
+            var LayPartsFlatButton = new Button { Text = "Lay Parts Flat" };
+            LayPartsFlatButton.Click += (sender, e) => OnLayPartsFlatButton();
+
+            var CopyComponentsButton = new Button { Text = "Copy Components" };
+            CopyComponentsButton.Click += (sender, e) => OnCopyComponentsButton();
+
             DefaultButton = new Button { Text = "OK" };
             DefaultButton.Click += (sender, e) => Close(DialogResult.Ok);
 
@@ -39,18 +46,21 @@ namespace Production_Tools.Views
 
             AssemblyNameLabel = new Label();
             AssemblyNameLabel.Text = "Assembly Name :";
+            AssemblyNameLabel.TextAlignment = TextAlignment.Left;
 
             AssemblyNameTextBox = new TextBox();
             AssemblyNameTextBox.Text = "";
 
             ComponentPrefixLabel = new Label();
             ComponentPrefixLabel.Text = "Component Prefix : ";
+            ComponentPrefixLabel.TextAlignment = TextAlignment.Left;
 
             ComponentPrefixTextBox = new TextBox();
             ComponentPrefixTextBox.Text = "";
 
             PartPrefixLabel = new Label();
             PartPrefixLabel.Text = "Part Prefix : ";
+            PartPrefixLabel.TextAlignment = TextAlignment.Left;
 
             PartPrefixTextBox = new TextBox();
             PartPrefixTextBox.Text = "";
@@ -123,21 +133,51 @@ namespace Production_Tools.Views
                 Rows = {new TableRow(PrintAssemblyButton)}
             };
 
-            Content = new DynamicLayout
-            {
-                Padding = new Padding(5),
-                Spacing = new Size(5, 5),
-                Rows =
-                {
-                    new DynamicRow(assembly_listbox_layout),
-                    new DynamicRow(assembly_textbox_layout),
-                    new DynamicRow(component_prefix_textbox_layout),
-                    new DynamicRow(part_prefix_textbox_layout),
-                    new DynamicRow(button_layout),
-                    new DynamicRow(print_assembly_layout),
-                    new DynamicRow(defaults_layout)
-                }
-            };
+
+            var full_window = new DynamicLayout();
+
+            full_window.Padding = new Padding(5);
+            full_window.Spacing = new Size(5, 5);
+            
+            full_window.BeginHorizontal();
+            full_window.BeginVertical();
+            full_window.Add(new Label {Text = "Assemblies", TextAlignment = TextAlignment.Left});
+            full_window.Add(Assemblies);
+            full_window.EndVertical();
+
+            full_window.BeginVertical();
+            full_window.Add(new Label {Text = "Components", TextAlignment = TextAlignment.Left});
+            full_window.Add(Components);
+            full_window.EndVertical();
+
+            full_window.BeginVertical();
+            full_window.Add(new Label {Text = "Parts", TextAlignment = TextAlignment.Left});
+            full_window.Add(Parts);
+            full_window.EndVertical();
+            full_window.EndHorizontal();
+
+            full_window.BeginHorizontal();
+            full_window.BeginVertical();
+            full_window.Add(assembly_textbox_layout);
+            full_window.Add(component_prefix_textbox_layout);
+            full_window.Add(part_prefix_textbox_layout);
+            full_window.EndVertical();
+            full_window.EndHorizontal();
+
+            full_window.BeginHorizontal();
+            full_window.Add(button_layout);
+            full_window.Add(new Label { Text = "Component Name : ", TextAlignment = TextAlignment.Left});
+            full_window.Add(new Label { Text = "Part Name : ", TextAlignment = TextAlignment.Left});
+            full_window.Add(LayPartsFlatButton);
+            full_window.Add(CopyComponentsButton);
+            full_window.EndHorizontal();
+
+            full_window.BeginHorizontal();
+            full_window.Add(defaults_layout);
+            full_window.EndHorizontal();
+
+            Content = full_window;
+
 
             ResizeWindow();
         }
@@ -176,6 +216,9 @@ namespace Production_Tools.Views
                 if(component_names.Count > 0){
                     Components.SelectedIndex = 0;
                 }
+            }else{
+                List<string> empty_string = new List<string>();
+                Components.DataStore = empty_string;
             }
         }
 
@@ -202,7 +245,16 @@ namespace Production_Tools.Views
                         Parts.SelectedIndex = 0;
                     }
                 }
+            }else{
+                List<string> empty_string = new List<string>();
+                Parts.DataStore = empty_string;
             }
+        }
+
+        protected void UpdateListBoxes(){
+            UpdateAssemblies();
+            UpdateComponents();
+            UpdateParts();
         }
 
 
@@ -242,12 +294,15 @@ namespace Production_Tools.Views
         }
 
         protected void OnRemoveAssemblyButton(){
-            RhinoApp.WriteLine("Removing Assembly");
+            // --- TODO --- 
+            // Popup window for "Are you sure?"
+
+
             var assembly_names = Assembly_Tools.GetAssemblyNames(CurrentDoc);
             if(List_Utilities.InBounds(assembly_names, Assemblies.SelectedIndex)){
                 var assembly_name = assembly_names[Assemblies.SelectedIndex];
                 Assembly_Tools.RemoveAssemblyByName(CurrentDoc, assembly_name);
-                UpdateAssemblies();
+                UpdateListBoxes();
             }else{
                 RhinoApp.WriteLine("Selected Index Not in Bounds");
             }
@@ -265,6 +320,47 @@ namespace Production_Tools.Views
                 }
             }else{
                 RhinoApp.WriteLine("The Selected Index is out of bounds");
+            }
+        }
+
+        protected void OnLayPartsFlatButton(){
+            // retrieve parts from the assembly
+            var assembly_names = Assembly_Tools.GetAssemblyNames(CurrentDoc);
+            if(Assemblies.SelectedIndex >= 0 && Assemblies.SelectedIndex < assembly_names.Count){
+                List<Component> components = new List<Component>();
+                var selected_assembly = Assembly_Tools.RetrieveAssemblyByName(CurrentDoc, assembly_names[Assemblies.SelectedIndex]);
+                
+                foreach(var component_id in selected_assembly.Components){
+                    var component = Assembly_Tools.RetrieveComponent(CurrentDoc, component_id);
+                    components.Add(component);
+                }
+
+                List<Part> parts = Assembly_Tools.GetPartsFromComponents(CurrentDoc, components);
+                
+                // --- TODO---
+                // Algorithm for laying parts flat
+                // --------------------------------
+                // define a start position
+                // sort parts list by alphabetical order
+                // copy one of each of the parts, get the normal vector of the largest face, and their bounding box size in the orientation
+                // define where the landing position of each part should be based on adding up the sizes
+                // orient the copied parts on the construction plane
+                // Add a text label to each one. 
+                // create a set of layers for each part and assign the parts and texts to those labels. 
+                
+            }
+        }
+
+        protected void OnCopyComponentsButton(){
+            var assembly_names = Assembly_Tools.GetAssemblyNames(CurrentDoc);
+            if(Assemblies.SelectedIndex >= 0 && Assemblies.SelectedIndex < assembly_names.Count){
+                // --- TODO---
+                // Algorithm for copying components
+                // --------------------------------
+                // For each component find one group and make a copy of each
+                // Create translation for all unique components
+                // Move each component to that translation
+
             }
         }
 

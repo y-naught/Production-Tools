@@ -164,10 +164,21 @@ namespace Production_Tools.Utilities
             }
             if(found_assembly){
                 Guid cur_id = assembly_to_remove.Id;
+                List<Component> components = assembly_to_remove.GetComponents(doc);
+                List<Part> parts = GetPartsFromComponents(doc, components);
+
+                foreach(var component in components){
+                    RemoveComponent(doc, component.Id);
+                }
+                foreach(var part in parts){
+                    RemovePart(doc, part.Id);
+                }
+
                 RemoveAssembly(doc, assembly_to_remove.GetIdString());
                 Assembly_List.Remove(assembly_to_remove);
                 Assembly_Guid_List.Remove(cur_id);
                 SaveAssemblyGuids(doc);
+                Layer_Tools.RemoveAssemblyLayer(doc, _name);
             }else{
                 RhinoApp.WriteLine("Did not find assembly");
             }
@@ -293,6 +304,24 @@ namespace Production_Tools.Utilities
             }
             foreach(Guid part in part_ids){
                 Part cur_part = RetrievePart(doc, part);
+                parts.Add(cur_part);
+            }
+            return parts;
+        }
+
+        public static List<Part> GetPartsFromComponents(RhinoDoc doc, List<Component> components){
+            List<Guid> part_guids = new List<Guid>();
+            List<Part> parts = new List<Part>();
+
+            foreach(var component in components){
+                foreach(var part in component.Parts){
+                    if(!part_guids.Contains(part.PartId)){
+                        part_guids.Add(part.PartId);
+                    }
+                }
+            }
+            foreach(Guid part_id in part_guids){
+                Part cur_part = RetrievePart(doc, part_id);
                 parts.Add(cur_part);
             }
             return parts;
@@ -483,6 +512,14 @@ namespace Production_Tools.Utilities
 
         public string GetIdString(){
             return Id.ToString();
+        }
+
+        public List<Component> GetComponents(RhinoDoc doc){
+            List<Component> retrieved_components = new List<Component>();
+            foreach(var component in Components){
+                retrieved_components.Add(Assembly_Tools.RetrieveComponent(doc, component));
+            }
+            return retrieved_components;
         }
 
         public void WriteToConsole(){
