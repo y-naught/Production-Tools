@@ -1,18 +1,17 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Text.Json;
+using System.Linq;
 using Rhino;
 using Rhino.Commands;
 using Rhino.DocObjects;
+using Rhino.Geometry;
 using Rhino.NodeInCode;
 
 namespace Production_Tools.Utilities
 {
-    public static class Assembly_Tools{
-
-
+    public static class Assembly_Tools
+    {
         // List of variables that are kept in memory while system is running
         // We update these variables and the changes to the data storage system simultaneously, always, and forever.
         // Each of these List objects have a parallel datastore object in document user data that is kept up with. 
@@ -419,6 +418,8 @@ namespace Production_Tools.Utilities
     
         #endregion
 
+        #region Misc Assembly Utilities
+
         // User Interface modifications
         public static ObjRef[] PromptGeometrySelection(){
             string prompt = "Please Select Objects You want to add to your assembly";
@@ -475,6 +476,173 @@ namespace Production_Tools.Utilities
             doc.Views.Redraw();
         }
 
+        public static void LayPartsFlat(RhinoDoc doc, List<Part> parts, double part_spacing){
+             // --- TODO---
+            // Algorithm for laying parts flat
+            // --------------------------------
+            // define a start position
+            var start_point = new Point3d(0,0,0);
+
+            // sort parts list by alphabetical order
+            var sorted_parts = parts.OrderBy(obj => obj.Name);
+
+            List<(RhinoObject obj, Plane st_plane, double pt_thickness, double pt_width, double pt_height, int pt_quantity, string pt_name, PTColor layer_color)> parts_to_orient = new List<(RhinoObject obj, Plane st_plane, double pt_thickness, double pt_width, double pt_height, int pt_quantity, string pt_name, PTColor layer_color)>();
+            
+            // copy one of each of the parts, get the normal vector of the largest face, and their bounding box size in the orientation
+            foreach(Part part in sorted_parts){
+                if(part.RhObjects.Count > 0){
+                    var RhinoObjectId = part.RhObjects[0].New;
+                    // --- TODO ---
+                    // Is the object planar?
+                    Surface largest_surface = GetLargestSurface(doc, RhinoObjectId);
+                    Interval U_interval = largest_surface.Domain(0);
+                    Interval V_interval = largest_surface.Domain(1);
+                    
+                    largest_surface.Evaluate(U_interval.Mid, V_interval.Mid, 1, out Point3d eval_pt, out Vector3d[] eval_vect);
+
+                    // --- TODO ---
+                    // Add a check for whith way the cross product vector is pointing relative to the inside / outside of brep.
+                    // Vector3d normal_vector = Vector3d.CrossProduct(eval_vect[0], eval_vect[1]);
+                    Plane start_plane = new Plane(start_point, eval_vect[0], eval_vect[1]);
+                    
+                    var rhObject = doc.Objects.FindId(RhinoObjectId);
+                    BoundingBox bounds = rhObject.Geometry.GetBoundingBox(start_plane);
+                    Point3d[] corner_points = bounds.GetCorners();
+
+                    double xDim = corner_points[0].DistanceTo(corner_points[1]);
+                    double yDim = corner_points[0].DistanceTo(corner_points[3]);
+                    double zDim = corner_points[0].DistanceTo(corner_points[5]);
+
+                    double[] dims = {xDim, yDim, zDim};
+                    int[] dim_order = SortDims(dims);
+                    
+                    // 3 things we will do with these dimensions
+                    // Figure out the thickness of the part with the minimum dimension
+                    double part_thickness = dims[dim_order[0]];
+
+                    // figure out the spacing factor between objects when laying them out with the mid dim
+                    double part_width = dims[dim_order[1]];
+                    
+                    double part_height = dims[dim_order[2]];
+
+                    // If the plane Z-direction is the smallest and our y-axis is the mid dimension
+                    // then rotate by 90 degrees. 
+                    if(dim_order[1] == 2 && dim_order[0] == 2){
+                        start_plane.Rotate(Math.PI / 2, new Vector3d(0,0,1));
+                    }
+                    int part_count = part.RhObjects.Count;
+
+                    var new_info = (rhObject, start_plane, part_thickness, part_width, part_height, part_count, part.Name, part.LayerColor);
+                    parts_to_orient.Add(new_info);
+                }
+                
+                // RhinoApp.WriteLine(part.Name);
+            }
+            
+            
+
+            // define where the landing position of each part should be based on adding up the sizes
+            List<Plane> landing_positions = new List<Plane>();
+            List<TextEntity> new_texts = new List<TextEntity>();
+            List<ObjRef> oriented_objects = new List<ObjRef>();
+
+            double cur_x_position = start_point.X;
+            foreach(var part in parts_to_orient){
+                double x_increment = part.pt_width + part_spacing / 2;
+                cur_x_position += x_increment;
+                var cur_center_point = new Point3d(cur_x_position, part.pt_height, 0);
+                var landing_position = new Plane(cur_center_point, new Vector3d(1,0,0), new Vector3d(0,1,0));
+                landing_positions.Add(landing_position);
+                var xform = Transform.PlaneToPlane(part.st_plane, landing_position);
+                var duplicated_geometry = part.obj.Geometry.Duplicate();
+                duplicated_geometry.Transform(xform);
+                var oriented_object = doc.Objects.Add(duplicated_geometry);
+                oriented_objects.Add(new ObjRef(doc, oriented_object));
+                var text_entity = new TextEntity();
+                text_entity.PlainText = ConstructLPFText(part.pt_name, part.pt_quantity, part.pt_thickness);
+                // text_entity.Translate()
+            }
+            // orient the copied parts on the construction plane
+            // Add a text label to each one. 
+            // create a set of layers for each part and assign the parts and texts to those labels. 
+        }
+
+        public static Surface GetLargestSurface(RhinoDoc doc, Guid object_id){
+            
+            var rhObject = doc.Objects.FindId(object_id);
+            if(rhObject != null){
+                if(rhObject.ObjectType == ObjectType.Brep){
+                    Brep brep_geometry = rhObject.Geometry.Duplicate() as Brep;
+                    Surface extracted_geometry = ExtractLargestSurfaceFromBrep(brep_geometry);
+                    return extracted_geometry.Duplicate() as Surface;
+                }
+                else if(rhObject.ObjectType == ObjectType.Extrusion){
+                    var extrusion_geometry = rhObject.Geometry.Duplicate() as Extrusion;
+                    if(extrusion_geometry.HasBrepForm){
+                        Brep converted_to_brep = Brep.TryConvertBrep(extrusion_geometry);
+                        Surface extracted_geometry = ExtractLargestSurfaceFromBrep(converted_to_brep);
+                        return extracted_geometry.Duplicate() as Surface;
+                    }else{
+                        RhinoApp.Write("Extrusion is not Brep-like");
+                    }
+                }else{
+                    RhinoApp.WriteLine("Objects that aren't breps or extrusions aren't supported");
+                }
+            }
+            return null;
+        }
+
+        // sorts 3 demensional values by index and returns a new array with indices 0 = low, 1 = middle, 2 = high. 
+        public static int[] SortDims(double[] dims){
+            int[] dim_order = new int[2];
+            int lowest_index = -1;
+            int highest_index = -1;
+            double lowest = 999999999;
+            double highest = -1;
+            for(int i = 0; i < dims.Length; i++){
+                if(dims[i] < lowest){
+                    lowest_index = i;
+                    lowest = dims[i];
+                }
+                if(dims[i] > highest){
+                    highest_index = i;
+                    highest = dims[i];
+                }
+            }
+            for(int i = 0; i < dims.Length; i++){
+                if(i != lowest_index && i != highest_index){
+                    dim_order[1] = i;
+                }
+            }
+            dim_order[0] = lowest_index;
+            dim_order[2] = highest_index;
+
+            return dim_order;
+        }
+
+        public static Surface ExtractLargestSurfaceFromBrep(Brep brep){
+            
+            var faces = brep.Faces;
+            double largest_area = 0;
+            int largest_index = -1;
+
+            for(int i = 0; i < faces.Count; i++){
+                var face = faces[i];
+                var face_area = AreaMassProperties.Compute(face);
+                if(face_area.Area > largest_area){
+                    largest_area = face_area.Area;
+                    largest_index = i;
+                }
+            }
+            var largest_face = faces[largest_index];
+            return largest_face.UnderlyingSurface().Duplicate() as Surface;
+        }
+
+        public static string ConstructLPFText(string name, int quantity, double thickness){
+            return name + "\n" + "QTY : " + quantity.ToString() + "\n" + "Thickness : " + Math.Round(thickness, 3).ToString();
+        }
+
+        #endregion
     }
 
 

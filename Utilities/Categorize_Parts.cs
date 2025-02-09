@@ -10,7 +10,7 @@ using Rhino.Geometry.Collections;
 namespace Production_Tools.Utilities
 {
         
-        public static class Categorize_Parts
+    public static class Categorize_Parts
     {
         #region Part Categorization
         public static double bound_curve_dim_tolerance = 0.001;
@@ -36,7 +36,7 @@ namespace Production_Tools.Utilities
             }
             return part_groups;
         }
-
+        
         
         /// <summary>
         /// Gets a single group from a part group
@@ -154,6 +154,7 @@ namespace Production_Tools.Utilities
         public static (List<Part> parts, List<Component> components) CreatePartComponentObjects(RhinoDoc doc, List<List<Temp_Part>> equivalent_object_sets, List<int> group_indices, string component_prefix, string part_prefix){
             
             Dictionary<int, int[]> group_counts = new Dictionary<int, int[]>();
+            
             // Initialize the dictionary with all possible group indices
             foreach(int indx in group_indices){
                 int[] parts_in_group = new int[equivalent_object_sets.Count];

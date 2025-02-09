@@ -79,8 +79,6 @@ namespace Production_Tools.Views
             // Components.SelectedIndex = 0;
 
             Parts = new ListBox();
-            // Parts.DataStore = Assembly_Tools.GetPartNames(CurrentDoc);;
-            // Parts.SelectedIndex = 0;
 
 
             var button_layout = new TableLayout
@@ -168,12 +166,13 @@ namespace Production_Tools.Views
             full_window.Add(button_layout);
             full_window.Add(new Label { Text = "Component Name : ", TextAlignment = TextAlignment.Left});
             full_window.Add(new Label { Text = "Part Name : ", TextAlignment = TextAlignment.Left});
-            full_window.Add(LayPartsFlatButton);
-            full_window.Add(CopyComponentsButton);
+            
             full_window.EndHorizontal();
 
             full_window.BeginHorizontal();
             full_window.Add(defaults_layout);
+            full_window.Add(LayPartsFlatButton);
+            full_window.Add(CopyComponentsButton);
             full_window.EndHorizontal();
 
             Content = full_window;
@@ -337,17 +336,10 @@ namespace Production_Tools.Views
 
                 List<Part> parts = Assembly_Tools.GetPartsFromComponents(CurrentDoc, components);
                 
-                // --- TODO---
-                // Algorithm for laying parts flat
-                // --------------------------------
-                // define a start position
-                // sort parts list by alphabetical order
-                // copy one of each of the parts, get the normal vector of the largest face, and their bounding box size in the orientation
-                // define where the landing position of each part should be based on adding up the sizes
-                // orient the copied parts on the construction plane
-                // Add a text label to each one. 
-                // create a set of layers for each part and assign the parts and texts to those labels. 
+               Assembly_Tools.LayPartsFlat(CurrentDoc, parts, 30.0);
                 
+            }else{
+                RhinoApp.WriteLine("There is no assembly selected");
             }
         }
 

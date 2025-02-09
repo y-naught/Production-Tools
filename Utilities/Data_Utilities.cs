@@ -1,14 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
-using Eto.Forms;
-using Rhino.Commands;
 using Rhino;
-using Rhino.PlugIns;
 using System.Text.Json;
 using Rhino.UI;
-using System.Linq;
 
 
 namespace Production_Tools.Utilities
@@ -226,6 +221,8 @@ namespace Production_Tools.Utilities
 
     }
 
+    #region Layout Class Objects
+
     // Layout template class is used to define a user Layout Object. This system provides a structure for
     // other parts of the system to auto populate text in a layout. 
     public class Layout_Template{
@@ -323,3 +320,5 @@ namespace Production_Tools.Utilities
         public Layout_Template Parent{get; set;}
     }
 }
+
+#endregion

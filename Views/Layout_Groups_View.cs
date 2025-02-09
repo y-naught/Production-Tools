@@ -122,7 +122,7 @@ namespace Production_Tools.Views
                 RhinoApp.WriteLine("You can't delete the only group available");
             }
         }
-
+        
         protected void OnCreateButton(){
             // RhinoApp.WriteLine("Creating Layout Group");
             
